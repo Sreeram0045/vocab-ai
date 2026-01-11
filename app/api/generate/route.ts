@@ -56,19 +56,10 @@ export async function POST(req: Request) {
         "Chandler: That is not serendipity, Joe."
       ]
     }
-    You must return a SINGLE JSON Object with this exact structure:
-        {
-            "meaning": "Simple definition",
-            "universe": "Name of show",
-            "visual_prompt": "Description of a scene for an image generator (no text)",
-            "synonyms": ["word1", "word2"],
-            "antonyms": ["word1", "word2"],
-            "conversation": [
-                "Character A: Line 1",
-                "Character B: Line 2"
-            ],
-            "context": "One word use case"
-        }
+    OUTPUT RULES:
+    - Return ONLY valid JSON.
+    - Synonyms must be separate strings.
+    - Do NOT use "Character A". Use Real Names (e.g., Sheldon).
     `;
 
     try {
