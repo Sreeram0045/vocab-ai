@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Sparkles, BookOpen, AlertCircle, Tv } from "lucide-react";
+import { Search, Sparkles, BookOpen, AlertCircle, Tv, ArrowRight, Check, X } from "lucide-react";
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -92,146 +92,183 @@ export default function Home() {
 
   // --- THE UI: What the user sees ---
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 p-6 md:p-12 font-sans flex flex-col items-center">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col items-center overflow-x-hidden">
 
-      <div className="max-w-3xl w-full space-y-8">
+      {/* STICKY HEADER - Minimal & Clean */}
+      <div className="sticky top-0 z-50 w-full backdrop-blur-md bg-background/50 border-b border-white/20 py-6 flex justify-center transition-all duration-500">
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 select-none text-white/90">
+          VocabAI <span className="text-white/40 font-light">2.0</span>
+        </h1>
+      </div>
 
-        {/* HEADER */}
-        <div className="text-center space-y-4">
-          <h1 className="text-5xl font-extrabold tracking-tight text-blue-500 flex justify-center items-center gap-3">
-            VocabAI <span className="text-slate-100">2.0</span>
-          </h1>
-          <p className="text-slate-400 text-lg">
-            Learn words through the lens of your favorite TV shows.
+      <div className="max-w-5xl w-full p-6 md:p-12 space-y-16">
+
+        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-1000">
+           <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide">
+            Master vocabulary through the lens of cinema.
           </p>
         </div>
 
-        {/* SEARCH BAR */}
-        <div className="flex gap-3 shadow-lg">
-          <Input
-            placeholder="Enter a complex word (e.g. Serendipity)..."
-            className="h-14 text-lg bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-blue-500"
-            value={inputWord}
-            onChange={(e) => setInputWord(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          />
-          <Button
-            onClick={handleSearch}
-            disabled={loadingText}
-            className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-lg font-semibold"
-          >
-            {loadingText ? <Sparkles className="animate-spin" /> : <Search />}
-          </Button>
+        {/* --- REDESIGNED SEARCH BAR: The "Platinum Capsule" --- */}
+        <div className="relative max-w-2xl mx-auto w-full group">
+          <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-white/10 to-white/5 opacity-20 blur-xl group-hover:opacity-40 transition duration-500"></div>
+          <div className="relative flex items-center bg-black/40 backdrop-blur-xl border border-white/30 rounded-full p-2 pr-2 shadow-2xl transition-all duration-300 hover:border-white/50">
+            <Search className="ml-4 text-white/30" size={20} />
+            <Input
+              placeholder="Enter a word to explore..."
+              className="h-12 border-none bg-transparent focus-visible:ring-0 text-white text-lg placeholder:text-white/30 px-4"
+              value={inputWord}
+              onChange={(e) => setInputWord(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+            <Button
+              onClick={handleSearch}
+              disabled={loadingText}
+              size="icon"
+              className="h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white hover:text-black transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]"
+            >
+              {loadingText ? <Sparkles className="animate-spin" size={18} /> : <ArrowRight size={20} />}
+            </Button>
+          </div>
         </div>
 
         {/* ERROR MESSAGE */}
         {error && (
-          <Alert variant="destructive" className="bg-red-900/20 border-red-900">
+          <Alert variant="destructive" className="bg-red-950/30 border-red-900/50 text-red-200">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* LOADING SKELETON (Shows while waiting for text) */}
+        {/* LOADING SKELETON */}
         {loadingText && (
-          <div className="space-y-4">
-            <Skeleton className="h-40 w-full bg-slate-800 rounded-xl" />
-            <Skeleton className="h-64 w-full bg-slate-800 rounded-xl" />
+          <div className="space-y-8 animate-pulse">
+            <div className="h-40 w-full rounded-3xl bg-white/5 border border-white/20" />
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="h-80 w-full rounded-3xl bg-white/5 border border-white/20" />
+              <div className="h-80 w-full rounded-3xl bg-white/5 border border-white/20" />
+            </div>
           </div>
         )}
 
-        {/* RESULTS AREA */}
+        {/* --- RESULTS AREA --- */}
         {result && !loadingText && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-12 duration-1000">
 
-            {/* 1. DEFINITION CARD */}
-            <Card className="bg-slate-900 border-slate-800 shadow-2xl overflow-hidden">
-              <CardHeader className="border-b border-slate-800 pb-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-4xl capitalize font-bold text-white mb-2">
-                      {inputWord}
-                    </CardTitle>
-                    <CardDescription className="text-slate-400 text-lg">
+            {/* 1. THE "DATA HUD" DEFINITION CARD */}
+            <div className="relative overflow-hidden rounded-3xl bg-black/40 border border-white/30 backdrop-blur-2xl p-8 md:p-12 shadow-2xl group hover:border-white/50 transition-all duration-500">
+               {/* Background Glow */}
+               <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+
+               <div className="relative z-10 grid md:grid-cols-[1fr_auto] gap-8 items-start">
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-7xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40 mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                        {inputWord}
+                      </h2>
+                      <div className="flex flex-wrap gap-3">
+                         <Badge className="bg-white/10 hover:bg-white/20 text-white border-white/20 px-3 py-1 text-sm backdrop-blur-md transition-colors">
+                           {result.context}
+                         </Badge>
+                         <span className="text-white/40 text-sm flex items-center font-mono tracking-widest uppercase">
+                            // {result.universe} Universe
+                         </span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-2xl md:text-3xl font-light text-white/80 leading-relaxed max-w-3xl">
                       {result.meaning}
-                    </CardDescription>
-                  </div>
-                  <Badge variant="secondary" className="bg-blue-900/50 text-blue-200 hover:bg-blue-900 px-3 py-1 text-sm">
-                    {result.context}
-                  </Badge>
-                </div>
-              </CardHeader>
+                    </p>
 
-              <CardContent className="pt-6 grid md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-green-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <BookOpen size={14} /> Synonyms
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {result.synonyms.map(syn => (
-                      <Badge key={syn} variant="outline" className="border-green-900 text-green-300 bg-green-950/30">
-                        {syn}
-                      </Badge>
-                    ))}
+                    {/* Meta Data Grid */}
+                    <div className="grid grid-cols-2 gap-8 pt-8 border-t border-white/30 mt-8">
+                       <div>
+                          <h4 className="text-emerald-400/60 text-xs font-bold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                             <Check size={14} /> Synonyms
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                             {result.synonyms.map(syn => (
+                               <span key={syn} className="flex items-center px-2 py-1 rounded-md bg-emerald-500/5 border border-emerald-500/10 text-emerald-400/80 text-sm hover:text-emerald-300 hover:border-emerald-500/30 transition-all cursor-default">
+                                 <Check className="w-3 h-3 mr-1.5 opacity-50" /> {syn}
+                               </span>
+                             ))}
+                          </div>
+                       </div>
+                       <div>
+                          <h4 className="text-rose-400/60 text-xs font-bold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                             <X size={14} /> Antonyms
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                             {result.antonyms.map(ant => (
+                               <span key={ant} className="flex items-center px-2 py-1 rounded-md bg-rose-500/5 border border-rose-500/10 text-rose-400/80 text-sm hover:text-rose-300 hover:border-rose-500/30 transition-all cursor-default">
+                                 <X className="w-3 h-3 mr-1.5 opacity-50" /> {ant}
+                               </span>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h4 className="text-red-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
-                    Antonyms
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {result.antonyms.map(ant => (
-                      <Badge key={ant} variant="outline" className="border-red-900 text-red-300 bg-red-950/30">
-                        {ant}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+               </div>
+            </div>
 
-            {/* 2. IMAGE & CONVERSATION GRID */}
-            <div className="grid md:grid-cols-5 gap-6">
+            {/* 2. VISUALIZATION GRID */}
+            <div className="grid md:grid-cols-2 gap-8">
 
-              {/* IMAGE COLUMN (2/5 width) */}
-              <div className="md:col-span-2 space-y-4">
-                <div className="rounded-xl overflow-hidden border border-slate-700 shadow-lg bg-black aspect-square relative flex items-center justify-center">
-                  {loadingImage ? (
-                    <div className="text-center space-y-2">
-                      <Sparkles className="w-8 h-8 text-purple-500 animate-bounce mx-auto" />
-                      <p className="text-xs text-purple-400">Generating Scene...</p>
+              {/* IMAGE COLUMN */}
+              <div className="group relative rounded-3xl overflow-hidden border border-white/30 bg-black/50 aspect-square shadow-2xl hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)] transition-all duration-500">
+                 {/* Cinema Screen Effect - Top/Bottom bars removed, just pure content with border */}
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-20 transition-opacity duration-500"/>
+                 
+                 {loadingImage ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
+                      <Sparkles className="w-10 h-10 text-white animate-pulse" />
+                      <p className="text-sm text-white/40 font-mono tracking-widest uppercase">Rendering Scene...</p>
                     </div>
                   ) : result.imageUrl ? (
                     <img
                       src={result.imageUrl}
                       alt="Generated Scene"
-                      className="w-full h-full object-cover animate-in fade-in duration-1000"
+                      className="w-full h-full object-cover animate-in fade-in duration-1000 group-hover:scale-105 transition-transform duration-1000 ease-out"
                     />
                   ) : (
-                    <div className="text-slate-600 text-sm">No Image Available</div>
+                    <div className="absolute inset-0 flex items-center justify-center text-white/20">No Visual Data</div>
                   )}
-                </div>
-                <p className="text-xs text-slate-500 text-center italic px-4">
-                  "{result.visual_prompt}"
-                </p>
+
+                  <div className="absolute bottom-0 left-0 right-0 p-6 z-20 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                    <p className="text-xs text-white/60 font-mono border-l-2 border-white pl-3 line-clamp-2">
+                       &quot;{result.visual_prompt}&quot;
+                    </p>
+                  </div>
               </div>
 
-              {/* CONVERSATION COLUMN (3/5 width) */}
-              <Card className="md:col-span-3 bg-purple-950/10 border-purple-900/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-purple-300 text-lg">
-                    <Tv size={20} /> An Imaginative Scene from {result.universe}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {result.conversation.map((line, i) => (
-                    <div key={i} className="p-4 bg-slate-950/80 rounded-lg border-l-4 border-purple-500 shadow-sm">
-                      <p className="text-slate-200 leading-relaxed">{line}</p>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              {/* CONVERSATION COLUMN */}
+              <div className="rounded-3xl border border-white/30 bg-white/5 backdrop-blur-xl p-8 flex flex-col justify-center space-y-6 shadow-2xl relative overflow-hidden group hover:border-white/50 transition-all duration-500">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+
+                <div className="flex items-center gap-3 text-white/90 border-b border-white/20 pb-4">
+                  <Tv size={20} className="text-white/60" />
+                  <h3 className="text-lg font-bold tracking-wide">Script Fragment</h3>
+                </div>
+
+                <div className="space-y-6">
+                  {result.conversation.map((line, i) => {
+                    const [speaker, ...rest] = line.split(":");
+                    const dialogue = rest.join(":").trim();
+                    
+                    return (
+                      <div key={i} className="relative pl-6 border-l-2 border-white/20 hover:border-white/50 transition-all duration-300">
+                        <span className="block text-xs font-bold tracking-widest uppercase text-white/40 mb-1">
+                          {speaker}
+                        </span>
+                        <p className="text-xl text-white/90 font-serif leading-relaxed italic">
+                          &quot;{dialogue}&quot;
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
             </div>
           </div>

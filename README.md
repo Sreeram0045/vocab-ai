@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VocabAI 2.0 - Cinema-First Vocabulary Learning
 
-## Getting Started
+VocabAI 2.0 is an interactive, premium educational application that transforms vocabulary learning into a cinematic experience. By leveraging generative AI, it defines complex words through the lens of popular TV universes, creating immersive script fragments and visual scenes to make learning memorable.
 
-First, run the development server:
+## ✨ Key Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+*   **Cinematic Definitions:** Learn words through generated scripts featuring characters from suitable TV universes (e.g., *The Big Bang Theory* for science, *Succession* for business).
+*   **Visual Scene Generation:** Automatically generates a thematic image representing the word in action using FLUX.1.
+*   **"Obsidian & Platinum" Design:** A premium, monochrome aesthetic featuring deep black backgrounds, silver accents, and glassmorphic effects.
+*   **Script Fragment View:** Displays dialogue in a professional screenplay format.
+*   **Data HUD:** A futuristic card layout for synonyms, antonyms, and context, designed for clarity and style.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+*   **Framework:** Next.js 16 (App Router)
+*   **Styling:** Tailwind CSS v4
+*   **UI Components:** Shadcn/UI (Radix Primitives) + Lucide React Icons
+*   **AI Models (via Hugging Face):**
+    *   **Text:** `meta-llama/Llama-3.1-8B-Instruct`
+    *   **Image:** `black-forest-labs/FLUX.1-schnell`
+*   **Language:** TypeScript
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Getting Started
 
-## Learn More
+### Prerequisites
 
-To learn more about Next.js, take a look at the following resources:
+*   Node.js (v20+ recommended)
+*   A Hugging Face API Token (Free tier works)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Installation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/vocab-ai.git
+    cd vocab-ai
+    ```
 
-## Deploy on Vercel
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3.  **Set up Environment Variables:**
+    Create a `.env.local` file in the root directory:
+    ```env
+    HF_TOKEN=your_hugging_face_token_here
+    ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+
+5.  Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## 🎨 Design System
+
+VocabAI 2.0 features a custom **"Obsidian & Platinum"** theme:
+
+*   **Background:** Deep obsidian (`oklch(0.05 0 0)`) with white/silver radial spotlights.
+*   **Accents:** Platinum (`oklch(0.98 0 0)`) and Silver (`oklch(0.8 0 0)`).
+*   **Visual Cues:**
+    *   Synonyms: Subtle **Emerald** tint.
+    *   Antonyms: Subtle **Rose** tint.
+*   **Typography:**
+    *   Headings: `Geist Sans` (Modern, geometric).
+    *   Scripts: `Serif` italic for dialogue, `Mono` uppercase for character names.
+
+## 📂 Project Structure
+
+*   `app/page.tsx`: The main application logic and UI.
+*   `app/globals.css`: Global styles, theme variables, and background gradients.
+*   `app/api/generate/route.ts`: API route for text/script generation (Llama 3.1).
+*   `app/api/image/route.ts`: API route for scene generation (FLUX.1).
+*   `components/ui/`: Reusable Shadcn UI components.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1.  Fork the project.
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
+
+---
+
+**VocabAI 2.0** — Master words through the magic of storytelling.
