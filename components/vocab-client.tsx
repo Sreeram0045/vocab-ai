@@ -104,13 +104,13 @@ export default function VocabClient() {
         {/* --- REDESIGNED SEARCH BAR: The "Obsidian Dock" --- */}
         <div className="relative max-w-lg mx-auto w-full group z-50">
            {/* Glow Effect behind */}
-           <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+           <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
            
-           <div className="relative flex items-center gap-2 bg-zinc-800/80 border border-white/20 rounded-3xl p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30">
-            <Search className="ml-4 text-zinc-500 group-focus-within:text-zinc-300 transition-colors" size={20} />
+           <div className="relative flex items-center gap-2 bg-black border border-white/20 rounded-full p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30">
+            <Search className="ml-3 text-zinc-500 group-focus-within:text-zinc-300 transition-colors" size={20} />
             <Input
               placeholder="Type a word..."
-              className="flex-1 bg-transparent border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-lg h-12 font-light tracking-wide"
+              className="flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-lg h-12 font-light tracking-wide rounded-full"
               value={inputWord}
               onChange={(e) => setInputWord(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -119,9 +119,9 @@ export default function VocabClient() {
               onClick={handleSearch}
               disabled={loadingText || !inputWord.trim()}
               size="icon"
-              className="h-11 w-11 rounded-2xl bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+              className="h-12 w-12 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             >
-              {loadingText ? <Sparkles className="animate-spin text-black" size={20} /> : <ArrowRight size={22} />}
+              {loadingText ? <Sparkles className="animate-spin text-black" size={20} /> : <ArrowRight size={24} />}
             </Button>
           </div>
         </div>
