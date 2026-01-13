@@ -1,6 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 import { z } from "zod";
+import { auth } from "@/auth";
 
 const huggingface = createOpenAI({
     baseURL: "https://router.huggingface.co/v1",
@@ -8,6 +9,11 @@ const huggingface = createOpenAI({
 });
 
 export async function POST(req: Request) {
+    const session = await auth();
+    if (!session || !session.user) {
+        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { word } = await req.json();
 
     const vocabSchema = z.object({
@@ -80,14 +86,16 @@ export async function POST(req: Request) {
         const validatedData = vocabSchema.parse(rawData);
 
         return Response.json(validatedData);
-    } catch (error: any) {
-        console.error("🔥 Error:", error.message);
-        console.error("The bad text was:", error.cause); // Check console if it fails
-
+    } catch (error: unknown) {
+        let errorMessage = "Unknown error";
+        if (error instanceof Error) errorMessage = error.message;
+        
+        console.error("🔥 Error:", errorMessage);
+        
         // Fallback: If AI fails, return a safe error to frontend
         return Response.json({
             error: "AI got confused. Try searching again!",
-            details: error.message
+            details: errorMessage
         }, { status: 500 });
     }
 }

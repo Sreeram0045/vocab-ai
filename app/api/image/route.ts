@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 export async function POST(req: Request) {
+    const session = await auth();
+    if (!session || !session.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         // 1. Get the Prompt and Universe from the request
         const { prompt, universe } = await req.json();
@@ -47,8 +53,9 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ image: base64Image });
 
-    } catch (error: any) {
-        console.error("🔥 Image Route Exception:", error.message);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error("🔥 Image Route Exception:", errorMessage);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
