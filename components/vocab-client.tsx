@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, Sparkles, AlertCircle, Tv, ArrowRight, Check, X } from "lucide-react";
+import Image from "next/image";
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // --- THE BLUEPRINT (Interface) ---
 interface VocabData {
+  word: string;
   meaning: string;
   universe: string;
   visual_prompt: string;
@@ -35,6 +37,8 @@ export default function VocabClient() {
   // --- THE BRAIN: Handles the Search Logic ---
   async function handleSearch() {
     if (!inputWord.trim()) return;
+    
+    const currentSearchWord = inputWord.trim();
 
     // 1. Reset everything
     setLoadingText(true);
@@ -46,7 +50,7 @@ export default function VocabClient() {
       // 2. Fetch TEXT (The Definition)
       const textRes = await fetch("/api/generate", {
         method: "POST",
-        body: JSON.stringify({ word: inputWord }),
+        body: JSON.stringify({ word: currentSearchWord }),
       });
 
       const textData = await textRes.json();
@@ -54,8 +58,9 @@ export default function VocabClient() {
       if (!textRes.ok) throw new Error(textData.error || "Failed to fetch definition");
 
       // 3. Update the screen with text IMMEDIATELY
-      setResult(textData);
+      setResult({ ...textData, word: currentSearchWord });
       setLoadingText(false);
+      setInputWord(""); // Clear input after successful search
 
       // 4. Fetch IMAGE (Background Process)
       setLoadingImage(true);
@@ -96,25 +101,27 @@ export default function VocabClient() {
           </p>
         </div>
 
-        {/* --- REDESIGNED SEARCH BAR: The "Platinum Capsule" --- */}
-        <div className="relative max-w-2xl mx-auto w-full group">
-          <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-white/10 to-white/5 opacity-20 blur-xl group-hover:opacity-40 transition duration-500"></div>
-          <div className="relative flex items-center bg-black/40 backdrop-blur-xl border border-white/30 rounded-full p-2 pr-2 shadow-2xl transition-all duration-300 hover:border-white/50">
-            <Search className="ml-4 text-white/30" size={20} />
+        {/* --- REDESIGNED SEARCH BAR: The "Obsidian Dock" --- */}
+        <div className="relative max-w-lg mx-auto w-full group z-50">
+           {/* Glow Effect behind */}
+           <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+           
+           <div className="relative flex items-center gap-2 bg-zinc-800/80 border border-white/20 rounded-3xl p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30">
+            <Search className="ml-4 text-zinc-500 group-focus-within:text-zinc-300 transition-colors" size={20} />
             <Input
-              placeholder="Enter a word to explore..."
-              className="h-12 border-none bg-transparent focus-visible:ring-0 text-white text-lg placeholder:text-white/30 px-4"
+              placeholder="Type a word..."
+              className="flex-1 bg-transparent border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-lg h-12 font-light tracking-wide"
               value={inputWord}
               onChange={(e) => setInputWord(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
             <Button
               onClick={handleSearch}
-              disabled={loadingText}
+              disabled={loadingText || !inputWord.trim()}
               size="icon"
-              className="h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white hover:text-black transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)]"
+              className="h-11 w-11 rounded-2xl bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             >
-              {loadingText ? <Sparkles className="animate-spin" size={18} /> : <ArrowRight size={20} />}
+              {loadingText ? <Sparkles className="animate-spin text-black" size={20} /> : <ArrowRight size={22} />}
             </Button>
           </div>
         </div>
@@ -152,7 +159,7 @@ export default function VocabClient() {
                   <div className="space-y-6">
                     <div>
                       <h2 className="text-7xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40 mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                        {inputWord}
+                        {result.word}
                       </h2>
                       <div className="flex flex-wrap gap-3">
                          <Badge className="bg-white/10 hover:bg-white/20 text-white border-white/20 px-3 py-1 text-sm backdrop-blur-md transition-colors">
@@ -213,10 +220,12 @@ export default function VocabClient() {
                       <p className="text-sm text-white/40 font-mono tracking-widest uppercase">Rendering Scene...</p>
                     </div>
                   ) : result.imageUrl ? (
-                    <img
+                    <Image
                       src={result.imageUrl}
                       alt="Generated Scene"
-                      className="w-full h-full object-cover animate-in fade-in duration-1000 group-hover:scale-105 transition-transform duration-1000 ease-out"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover animate-in fade-in duration-1000 group-hover:scale-105 transition-transform duration-1000 ease-out"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-white/20">No Visual Data</div>

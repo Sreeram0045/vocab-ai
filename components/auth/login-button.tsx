@@ -1,6 +1,7 @@
 import { signOut, auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import Image from "next/image";
 
 export default async function LoginButton() {
   const session = await auth();
@@ -11,10 +12,12 @@ export default async function LoginButton() {
   return (
     <div className="flex items-center gap-4">
       {session.user.image && (
-        <img 
+        <Image 
             src={session.user.image} 
             alt={session.user.name || "User"} 
-            className="w-8 h-8 rounded-full border border-white/30"
+            width={32}
+            height={32}
+            className="rounded-full border border-white/30"
         />
       )}
       <form
@@ -23,7 +26,7 @@ export default async function LoginButton() {
           await signOut();
         }}
       >
-        <Button variant="ghost" size="sm" className="text-white/60 hover:text-white hover:bg-transparent">
+        <Button variant="ghost" size="sm" className="text-white/60 hover:text-white hover:bg-transparent cursor-pointer">
           <LogOut size={16} />
         </Button>
       </form>
