@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Sparkles, AlertCircle, Tv, ArrowRight, Check, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, Sparkles, AlertCircle, Tv, ArrowRight, Check, X, Book } from "lucide-react";
 import Image from "next/image";
 
 // Shadcn UI Components
@@ -9,9 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import TiptapEditor from "./editor/tiptap-editor";
 
 // --- THE BLUEPRINT (Interface) ---
 interface VocabData {
+  _id?: string;
   word: string;
   meaning: string;
   universe: string;
@@ -20,19 +30,64 @@ interface VocabData {
   antonyms: string[];
   conversation: string[];
   context?: string;
-  imageUrl?: string; // Optional because it loads later
+  imageUrl?: string;
 }
 
 export default function VocabClient() {
   // --- STATE: The "Memory" of the Screen ---
   const [inputWord, setInputWord] = useState("");
   const [result, setResult] = useState<VocabData | null>(null);
-
-  // Two loading states: one for text, one for the image
   const [loadingText, setLoadingText] = useState(false);
   const [loadingImage, setLoadingImage] = useState(false);
-
   const [error, setError] = useState("");
+
+  // Journal State
+  const [noteContent, setNoteContent] = useState("");
+  const [vocabularyWords, setVocabularyWords] = useState<string[]>([]);
+
+  // Fetch initial data
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [noteRes, historyRes] = await Promise.all([
+          fetch("/api/notes"),
+          fetch("/api/history/list")
+        ]);
+
+        if (noteRes.ok) {
+          const noteData = await noteRes.json();
+          setNoteContent(noteData.content || "");
+        }
+
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setVocabularyWords(historyData || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch initial journal data", err);
+      }
+    }
+    fetchData();
+  }, []);
+
+  // Update vocabulary list when a new word is saved
+  useEffect(() => {
+    if (result?.word && !vocabularyWords.includes(result.word.toLowerCase())) {
+        setVocabularyWords(prev => [...prev, result.word.toLowerCase()]);
+    }
+  }, [result, vocabularyWords]);
+
+  const handleSaveNote = useCallback(async (content: string) => {
+    setNoteContent(content);
+    try {
+      await fetch("/api/notes", {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      });
+    } catch (err) {
+      console.error("Failed to auto-save note", err);
+    }
+  }, []);
 
   // --- THE BRAIN: Handles the Search Logic ---
   async function handleSearch() {
@@ -47,6 +102,25 @@ export default function VocabClient() {
     setResult(null);
 
     try {
+      console.log("Checking history for:", currentSearchWord);
+      // --- STEP 0: Check History (Cache) ---
+      const historyRes = await fetch(`/api/history/check?word=${encodeURIComponent(currentSearchWord)}`);
+      if (historyRes.ok) {
+        const historyData = await historyRes.json();
+        console.log("History check result:", historyData);
+        if (historyData) {
+          // CACHE HIT! Use saved data
+          console.log("Cache HIT! Using saved data.");
+          setResult(historyData);
+          setInputWord("");
+          setLoadingText(false);
+          setLoadingImage(false); // Ensure image loading is false
+          return; // STOP HERE
+        }
+      }
+      console.log("Cache MISS. Generating new content...");
+
+      // --- STEP 1: CACHE MISS - Generate Content ---
       // 2. Fetch TEXT (The Definition)
       const textRes = await fetch("/api/generate", {
         method: "POST",
@@ -76,7 +150,15 @@ export default function VocabClient() {
       const imgData = await imgRes.json();
 
       if (imgData.image) {
+        // Update local state with image
+        const fullResult = { ...textData, word: currentSearchWord, imageUrl: imgData.image };
         setResult((prev) => prev ? { ...prev, imageUrl: imgData.image } : null);
+
+        // --- STEP 5: SAVE TO HISTORY ---
+        await fetch("/api/history/save", {
+          method: "POST",
+          body: JSON.stringify(fullResult),
+        });
       }
 
     } catch (err: unknown) {
@@ -93,7 +175,35 @@ export default function VocabClient() {
 
   // --- THE UI: What the user sees ---
   return (
-    <div className="max-w-5xl w-full p-6 md:p-12 space-y-16">
+    <div className="max-w-5xl w-full p-6 md:p-12 space-y-16 relative">
+        
+        {/* --- JOURNAL SIDEBAR --- */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110"
+            >
+              <Book size={24} />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="sm:max-w-2xl bg-zinc-950 border-white/10 overflow-y-auto">
+            <SheetHeader className="mb-8">
+              <SheetTitle className="text-3xl font-bold tracking-tight">Vocabulary Journal</SheetTitle>
+              <SheetDescription className="text-zinc-400">
+                Practice using your learned words. They will be highlighted automatically as you type.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-4">
+              <TiptapEditor 
+                initialContent={noteContent} 
+                vocabularyWords={vocabularyWords}
+                onSave={handleSaveNote}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
 
         <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-1000">
            <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide">
