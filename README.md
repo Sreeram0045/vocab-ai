@@ -87,3 +87,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ---
 
 **VocabAI 2.0** — Master words through the magic of storytelling.
+
+**Deploying in Vercel**
