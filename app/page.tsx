@@ -1,6 +1,9 @@
 
 import LoginButton from "@/components/auth/login-button";
 import VocabClient from "@/components/vocab-client";
+import { History } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -13,7 +16,14 @@ export default function Home() {
             VocabAI <span className="text-white/40 font-light">2.0</span>
           </h1>
           
-          <LoginButton />
+          <div className="flex items-center gap-4">
+             <Link href="/history">
+               <Button variant="ghost" size="icon" className="text-white/60 hover:text-white hover:bg-transparent cursor-pointer">
+                 <History size={20} />
+               </Button>
+             </Link>
+             <LoginButton />
+          </div>
         </div>
       </div>
 
