@@ -5,27 +5,34 @@ import { History } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = "force-dynamic";
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col items-center overflow-x-hidden">
       
       {/* STICKY HEADER - Server Rendered */}
-      <div className="sticky top-0 z-50 w-full backdrop-blur-md bg-background/50 border-b border-white/20 py-6 flex justify-center transition-all duration-500">
-        <div className="max-w-5xl w-full px-6 md:px-12 flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 select-none text-white/90">
-            VocabAI <span className="text-white/40 font-light">2.0</span>
-          </h1>
-          
-          <div className="flex items-center gap-4">
-             <Link href="/history">
-               <Button variant="ghost" size="icon" className="text-white/60 hover:text-white hover:bg-transparent cursor-pointer">
-                 <History size={20} />
-               </Button>
-             </Link>
-             <LoginButton />
+      <div className="w-full max-w-5xl px-6 md:px-12 py-8 flex justify-center sticky top-0 z-50">
+        <nav className="flex justify-between items-center w-full animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-black/40 p-4 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]">
+          <div className="flex items-center gap-1 select-none pl-2 cursor-pointer">
+            <span className="text-xl font-black tracking-tighter text-white">
+              Vocabul
+            </span>
+            <span className="text-xl font-medium tracking-tight text-white/90">
+              AI
+            </span>
           </div>
-        </div>
+          <div className="flex gap-3 items-center">
+            <Link href="/history">
+              <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer">
+                <History className="w-5 h-5" />
+              </Button>
+            </Link>
+            <LoginButton />
+          </div>
+        </nav>
       </div>
+
 
       {/* CLIENT LOGIC */}
       <VocabClient />

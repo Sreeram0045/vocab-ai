@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VocabAI - Learn with TV",
-  description: "Learn complex vocabulary through your favorite TV shows.",
+  title: "VocabulAI - Learn with TV",
+  description: "Learn vocabulary through the lens of your favorite TV shows.",
 };
 
 export default function RootLayout({

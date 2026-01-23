@@ -15,7 +15,7 @@ export default function LoginPage() {
             <Globe className="w-6 h-6 text-white/80" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-white/90">
-            VocabAI
+            VocabulAI
           </CardTitle>
           <CardDescription className="text-white/40 text-sm">
             Sign in to continue
@@ -38,9 +38,12 @@ export default function LoginPage() {
         </CardContent>
       </Card>
       
-      <div className="absolute bottom-8 text-center text-xs text-white/20 font-light">
-        &copy; {new Date().getFullYear()} VocabAI. All rights reserved.
-      </div>
+        {/* Footer */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-zinc-600">
+            &copy; {new Date().getFullYear()} VocabulAI. All rights reserved.
+          </p>
+        </div>
     </div>
   );
 }

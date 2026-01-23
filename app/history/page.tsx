@@ -12,7 +12,7 @@ import { ArrowLeft, ArrowRight, Calendar } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "History | VocabAI",
+  title: "History | VocabulAI",
   description: "Your personal vocabulary library.",
 };
 
