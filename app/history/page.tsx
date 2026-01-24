@@ -9,6 +9,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Calendar } from "lucide-react";
 
+import HistoryPagination from "./history-pagination";
+import BackButton from "./back-button";
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -49,12 +52,7 @@ export default async function HistoryPage(props: {
         {/* Header */}
         <div className="w-full mb-16 flex items-center justify-between">
           <div className="space-y-4">
-            <Link 
-              href="/" 
-              className="inline-flex items-center text-sm text-zinc-500 hover:text-white transition-colors mb-4 group"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Search
-            </Link>
+            <BackButton />
             <h1 className="text-6xl md:text-7xl font-black tracking-tighter text-white">Library</h1>
             <p className="text-zinc-500 text-2xl font-light max-w-2xl leading-relaxed">
               Your collection of <span className="text-white font-medium">{totalItems}</span> curated words, mastered through the lens of cinema.
@@ -124,45 +122,7 @@ export default async function HistoryPage(props: {
           </div>
         ) : (
           /* Pagination */
-          <div className="mt-32 flex justify-between items-center border-t border-zinc-800 pt-10 w-full">
-            <Button
-              variant="ghost"
-              disabled={page <= 1}
-              className="text-zinc-400 hover:text-white pl-0 hover:bg-transparent"
-              asChild={page > 1}
-            >
-              {page > 1 ? (
-                <Link href={`/history?page=${page - 1}`}>
-                   <ArrowLeft className="w-5 h-5 mr-2" /> Previous
-                </Link>
-              ) : (
-                <span>
-                   <ArrowLeft className="w-5 h-5 mr-2" /> Previous
-                </span>
-              )}
-            </Button>
-            
-            <span className="text-zinc-600 text-sm font-mono tracking-widest uppercase">
-              Page {page} / {totalPages}
-            </span>
-
-            <Button
-              variant="ghost"
-              disabled={page >= totalPages}
-              className="text-zinc-400 hover:text-white pr-0 hover:bg-transparent"
-              asChild={page < totalPages}
-            >
-              {page < totalPages ? (
-                <Link href={`/history?page=${page + 1}`}>
-                   Next <ArrowRight className="w-5 h-5 ml-2" />
-                </Link>
-              ) : (
-                 <span>
-                   Next <ArrowRight className="w-5 h-5 ml-2" />
-                 </span>
-              )}
-            </Button>
-          </div>
+          <HistoryPagination currentPage={page} totalPages={totalPages} />
         )}
       </div>
     </div>
