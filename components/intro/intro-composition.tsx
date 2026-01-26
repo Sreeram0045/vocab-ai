@@ -39,7 +39,7 @@ const GlitchText = ({ text, color, offset, frame }: { text: string, color: strin
 
   return (
     <div
-      className="font-black tracking-tighter text-6xl md:text-8xl whitespace-nowrap text-center"
+      className="font-black tracking-tighter text-4xl sm:text-6xl md:text-8xl whitespace-nowrap text-center"
       style={{
         color: color,
         transform: `translate(${shakeX}px, ${shakeY}px)`,
@@ -65,7 +65,7 @@ const HeartPulse = ({ frame }: { frame: number }) => {
                 transform: `scale(${beat * glitch})`,
                 textShadow: '0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 0, 0, 0.4)'
             }}
-            className="text-red-500 text-8xl md:text-9xl mt-8 font-sans text-center leading-none"
+            className="text-red-500 text-6xl sm:text-8xl md:text-9xl mt-8 font-sans text-center leading-none"
         >
             ♥
         </div>
