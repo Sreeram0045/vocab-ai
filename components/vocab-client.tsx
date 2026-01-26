@@ -182,7 +182,7 @@ export default function VocabClient() {
             <Button 
               variant="outline" 
               size="icon" 
-              className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110"
+              className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 opacity-0 animate-fade-in-up delay-500"
             >
               <Book size={24} />
             </Button>
@@ -204,14 +204,14 @@ export default function VocabClient() {
           </SheetContent>
         </Sheet>
 
-        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-1000">
-           <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide">
+        <div className="text-center space-y-4">
+           <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide opacity-0 animate-fade-in-up">
             Master vocabulary through the lens of cinema.
           </p>
         </div>
 
         {/* --- REDESIGNED SEARCH BAR: The "Obsidian Dock" --- */}
-        <div className="relative max-w-lg mx-auto w-full group z-50">
+        <div className="relative max-w-lg mx-auto w-full group z-50 opacity-0 animate-fade-in-up delay-200">
            {/* Glow Effect behind */}
            <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
            
