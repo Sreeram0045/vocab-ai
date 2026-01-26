@@ -11,15 +11,32 @@ export default function WelcomeScreen() {
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 });
 
   useEffect(() => {
     setMounted(true);
     
+    // Set initial dimensions to window size
+    setDimensions({
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+
+    // Optional: Update on resize (though typically splash screens are short-lived)
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+    window.addEventListener('resize', handleResize);
+
     // Check if we've already shown the intro in this session
     const hasSeenIntro = sessionStorage.getItem("vocab-intro-seen");
 
     if (hasSeenIntro) {
       // If seen, do nothing (keep isVisible false)
+      window.removeEventListener('resize', handleResize);
       return;
     }
 
@@ -38,11 +55,13 @@ export default function WelcomeScreen() {
     // Unmount from DOM after fade-out transition (1s)
     const removeTimer = setTimeout(() => {
       setShouldRender(false);
+      window.removeEventListener('resize', handleResize);
     }, animationDurationMs + 1000);
 
     return () => {
       clearTimeout(exitTimer);
       clearTimeout(removeTimer);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -55,15 +74,13 @@ export default function WelcomeScreen() {
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
-       {/* Max-width wrapper to keep content from getting too huge on ultra-wide screens if needed, 
-           but cover is fine. */}
-      <div className="w-full h-full max-w-[100vw] max-h-[100vh] aspect-video">
+      <div className="w-full h-full">
         <Player
           component={IntroComposition}
           durationInFrames={DURATION_IN_FRAMES}
           fps={FPS}
-          compositionWidth={1920}
-          compositionHeight={1080}
+          compositionWidth={dimensions.width}
+          compositionHeight={dimensions.height}
           style={{
             width: '100%',
             height: '100%',
