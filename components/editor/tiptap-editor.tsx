@@ -5,19 +5,36 @@ import { useEffect, useState, useRef } from 'react'
 import { Bold, Italic, List, ListOrdered, Quote, Heading1 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+interface VocabularyItem {
+  word: string;
+  meaning: string;
+  universe: string;
+}
+
 interface TiptapEditorProps {
   initialContent?: string
-  vocabularyWords?: string[]
+  vocabulary?: VocabularyItem[]
   onSave?: (content: string) => void
 }
 
 export default function TiptapEditor({
   initialContent = "",
-  vocabularyWords = [],
+  vocabulary = [],
   onSave
 }: TiptapEditorProps) {
   const [isSaving, setIsSaving] = useState(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Tooltip State
+  const [hoveredWord, setHoveredWord] = useState<{
+    word: string;
+    meaning: string;
+    universe: string;
+    x: number;
+    y: number;
+    height: number;
+  } | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -36,7 +53,7 @@ export default function TiptapEditor({
         },
       }),
       VocabularyMatcher.configure({
-        words: vocabularyWords,
+        words: vocabulary,
       }),
     ],
     content: initialContent,
@@ -44,6 +61,30 @@ export default function TiptapEditor({
       attributes: {
         class: 'prose prose-invert max-w-none focus:outline-none min-h-[300px] py-4 text-white/90 leading-relaxed',
       },
+      handleDOMEvents: {
+        mouseover: (view, event) => {
+          const target = (event.target as HTMLElement).closest('[data-meaning]') as HTMLElement;
+          if (target) {
+            const rect = target.getBoundingClientRect();
+            setHoveredWord({
+              word: target.getAttribute('data-word') || '',
+              meaning: target.getAttribute('data-meaning') || '',
+              universe: target.getAttribute('data-universe') || '',
+              x: rect.left + (rect.width / 2),
+              y: rect.top,
+              height: rect.height
+            });
+          }
+          return false;
+        },
+        mouseout: (view, event) => {
+           const target = (event.target as HTMLElement).closest('[data-meaning]') as HTMLElement;
+           if (target) {
+             setHoveredWord(null);
+           }
+           return false;
+        }
+      }
     },
     onUpdate: ({ editor }) => {
       // Clear existing timeout
@@ -64,23 +105,15 @@ export default function TiptapEditor({
 
   // Update vocabulary words dynamically
   useEffect(() => {
-    if (editor && vocabularyWords.length > 0) {
-      const extension = editor.extensionManager.extensions.find(ext => ext.name === 'vocabularyMatcher');
-      if (extension) {
-        // @ts-ignore - Direct option mutation for runtime update
-        extension.options.words = vocabularyWords;
-        
-        // Force a re-render of decorations
-        editor.view.dispatch(editor.state.tr);
-      }
+    if (editor && vocabulary.length > 0) {
+      // Use transaction meta to update the plugin state
+      editor.view.dispatch(editor.state.tr.setMeta('setVocabulary', vocabulary));
     }
-  }, [vocabularyWords, editor])
+  }, [vocabulary, editor])
 
-  // Update content if initialContent changes (e.g. after fetch)
+  // Update content if initialContent changes
   useEffect(() => {
     if (editor && initialContent && editor.getHTML() !== initialContent) {
-        // Only update if the content is actually different to avoid cursor jumps
-        // Ideally we check if the editor is empty or if this is the first load
         if (editor.getText().trim() === "" || !editor.isFocused) {
              editor.commands.setContent(initialContent)
         }
@@ -90,7 +123,35 @@ export default function TiptapEditor({
   if (!editor) return null
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full" ref={wrapperRef}>
+      
+      {/* Tooltip Overlay */}
+      {hoveredWord && (
+        <div 
+          className="fixed z-[9999] w-64 p-4 bg-zinc-950/90 border border-emerald-500/30 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.2)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 pointer-events-none"
+          style={{ 
+            top: hoveredWord.y - 12, // slightly above the word
+            left: hoveredWord.x, 
+            transform: 'translate(-50%, -100%)' 
+          }}
+        >
+           <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-950 border-b border-r border-emerald-500/30 rotate-45"></div>
+           
+           <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
+             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                {hoveredWord.universe}
+             </span>
+           </div>
+           
+           <h4 className="text-xl font-bold text-white mb-1 capitalize">
+             {hoveredWord.word}
+           </h4>
+           <p className="text-sm text-zinc-400 leading-relaxed font-light">
+             {hoveredWord.meaning}
+           </p>
+        </div>
+      )}
+
       <div className="mb-4 flex items-center justify-between">
         <div className="flex gap-2">
             <button

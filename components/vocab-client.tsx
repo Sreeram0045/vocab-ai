@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Search, Sparkles, AlertCircle, ArrowRight, Book, Settings } from "lucide-react"; // Added Settings icon
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Search, Sparkles, AlertCircle, ArrowRight, Book, Settings, Plus } from "lucide-react"; // Added Settings icon
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import TiptapEditor from "./editor/tiptap-editor";
 import WordCard from "./word-card";
 
 // --- NEW IMPORT ---
@@ -43,8 +43,7 @@ export default function VocabClient() {
   const [error, setError] = useState("");
 
   // Journal State
-  const [noteContent, setNoteContent] = useState("");
-  const [vocabularyWords, setVocabularyWords] = useState<string[]>([]);
+  const [notesList, setNotesList] = useState<any[]>([]);
 
   // --- NEW STATE FOR PREFERENCES ---
   const [showPreferences, setShowPreferences] = useState(false);
@@ -64,13 +63,26 @@ export default function VocabClient() {
         ]);
 
         if (noteRes.ok) {
-          const noteData = await noteRes.json();
-          setNoteContent(noteData.content || "");
+          const notesData = await noteRes.json();
+          // Ensure we have an array
+          if (Array.isArray(notesData)) {
+            setNotesList(notesData);
+          }
         }
 
         if (historyRes.ok) {
           const historyData = await historyRes.json();
-          setVocabularyWords(historyData || []);
+          // historyData is strictly string[] based on prior knowledge, 
+          // but let's be safe.
+          if (Array.isArray(historyData)) {
+             // Extract just the words if it's an object array, or just use it if it's strings
+             // Based on "history-list" route (not read here but inferred), it usually returns WordHistory objects?
+             // Actually previous code did: setVocabularyWords(historyData || []);
+             // Let's assume historyData is the list of *words* or objects. 
+             // If previous code worked, let's stick to it, but `vocabularyWords` was passed to Tiptap.
+             // We won't use Tiptap here anymore, so it matters less for this component, 
+             // but we might want to pass it to the new Notes page later.
+          }
         }
 
         // --- NEW LOGIC: Check User Preferences ---
@@ -96,23 +108,26 @@ export default function VocabClient() {
   }, []);
 
   // Update vocabulary list when a new word is saved
+  // (We don't need this locally anymore for the editor, but we keep the effect to not break logic if we re-add it)
   useEffect(() => {
-    if (result?.word && !vocabularyWords.includes(result.word.toLowerCase())) {
-      setVocabularyWords(prev => [...prev, result.word.toLowerCase()]);
-    }
-  }, [result, vocabularyWords]);
+    // This was just updating local state for the editor. 
+  }, [result]);
 
-  const handleSaveNote = useCallback(async (content: string) => {
-    setNoteContent(content);
+  // --- NEW HANDLER: Create a new note and navigate ---
+  const handleCreateNote = async () => {
     try {
-      await fetch("/api/notes", {
+      const res = await fetch("/api/notes", {
         method: "POST",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ title: "Untitled Note", content: "" }),
       });
+      if (res.ok) {
+        const newNote = await res.json();
+        window.location.href = `/notes/${newNote._id}`;
+      }
     } catch (err) {
-      console.error("Failed to auto-save note", err);
+      console.error("Failed to create note", err);
     }
-  }, []);
+  };
 
   // --- NEW HANDLER: Called when the modal successfully saves ---
   const handlePreferencesSaved = (shows: string[]) => {
@@ -234,19 +249,69 @@ export default function VocabClient() {
             <Book size={24} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="sm:max-w-2xl bg-zinc-950 border-white/10 overflow-y-auto">
-          <SheetHeader className="mb-8">
-            <SheetTitle className="text-3xl font-bold tracking-tight">Vocabulary Journal</SheetTitle>
-            <SheetDescription className="text-zinc-400">
-              Practice using your learned words. They will be highlighted automatically as you type.
+        <SheetContent side="right" className="sm:max-w-md bg-zinc-950/95 backdrop-blur-xl border-l border-white/10 overflow-y-auto">
+          <SheetHeader className="mb-8 text-left">
+            <SheetTitle className="text-2xl font-black tracking-tighter text-white">Writer&apos;s Room</SheetTitle>
+            <SheetDescription className="text-zinc-500 font-light">
+              Your creative workspace.
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-4">
-            <TiptapEditor
-              initialContent={noteContent}
-              vocabularyWords={vocabularyWords}
-              onSave={handleSaveNote}
-            />
+          
+          <div className="flex flex-col gap-6 mt-2">
+            
+            {/* Primary Action: Go to Dashboard */}
+            <Link href="/notes" className="group relative flex items-center justify-between p-6 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-emerald-500/60 hover:from-emerald-900/20 hover:to-black transition-all duration-500 overflow-hidden cursor-pointer">
+                <div className="relative z-10">
+                   <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">Enter Room</h3>
+                   <p className="text-xs text-zinc-400 mt-1">View all {notesList.length} notes</p>
+                </div>
+                <div className="relative z-10 p-3 rounded-full bg-white/5 group-hover:bg-emerald-500/20 group-hover:text-emerald-400 transition-all text-white/50">
+                    <ArrowRight size={20} />
+                </div>
+                {/* Glow */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+            </Link>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                 <h3 className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Quick Drafts</h3>
+                 <Button 
+                   variant="ghost" 
+                   size="sm" 
+                   onClick={handleCreateNote} 
+                   className="h-8 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 -mr-2 cursor-pointer"
+                 >
+                   <Plus className="w-3 h-3 mr-1.5" /> New Note
+                 </Button>
+              </div>
+
+              {notesList.length === 0 ? (
+                <div className="p-8 border border-dashed border-white/10 rounded-2xl text-center">
+                    <p className="text-zinc-600 italic text-sm mb-4">No notes yet.</p>
+                    <Button variant="secondary" size="sm" onClick={handleCreateNote} className="cursor-pointer">Create First Note</Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                {notesList.slice(0, 5).map((note) => (
+                  <Link 
+                    key={note._id} 
+                    href={`/notes/${note._id}`}
+                    className="block p-4 rounded-xl bg-black/20 border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all group cursor-pointer"
+                  >
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-medium text-zinc-300 group-hover:text-white transition-colors truncate pr-4 text-sm">
+                        {note.title || "Untitled Note"}
+                      </h4>
+                    </div>
+                    <p className="text-[10px] text-zinc-600 mt-2 font-mono uppercase tracking-wider">
+                      {new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </p>
+                  </Link>
+                ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </SheetContent>
       </Sheet>
