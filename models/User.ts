@@ -18,6 +18,12 @@ const UserSchema = new Schema(
       type: Number,
       default: 10, // Example: Give new users 10 free generations
     },
+    preferences: {
+      watchedShows: {
+        type: [String], // Array of strings
+        default: []     // Default to empty array
+      }
+    }
   },
   {
     timestamps: true,
