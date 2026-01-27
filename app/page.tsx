@@ -4,12 +4,14 @@ import VocabClient from "@/components/vocab-client";
 import { History } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import WelcomeScreen from "@/components/intro/welcome-screen";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col items-center overflow-x-hidden">
+      <WelcomeScreen />
       
       {/* STICKY HEADER - Server Rendered */}
       <div className="w-full max-w-5xl px-6 md:px-12 py-8 flex justify-center sticky top-0 z-50">
