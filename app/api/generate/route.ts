@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { word } = await req.json();
+    const { word, preferredShows } = await req.json();
 
     const vocabSchema = z.object({
         meaning: z.string(),
@@ -26,21 +26,35 @@ export async function POST(req: Request) {
         context: z.string().optional()
     });
 
+    let universeInstruction = "";
+    if (preferredShows && preferredShows.length > 0) {
+        universeInstruction = `
+        CRITICAL: The user strictly prefers these shows: ${preferredShows.join(", ")}.
+        1. FIRST, check if the word "${word}" fits the "vibe" of any show in this list. 
+        2. IF YES, you MUST use that show.
+        3. ONLY if the word makes absolutely no sense in those universes (e.g., a wizard spell in 'Suits'), fall back to a generic popular sitcom.
+        `;
+    } else {
+        universeInstruction = `
+        Choose a universe based on the word's vibe:
+        - Science/Complex -> "The Big Bang Theory"
+        - Medical -> "House M.D."
+        - Legal -> "Suits"
+        - Corporate -> "The Office"
+        - Detective -> "Sherlock"
+        - Politics -> "Game of Thrones"
+        - Tech -> "Mr. Robot"
+        - Casual/Dating -> "Friends" or "HIMYM"
+        - Rich/Drama -> "Succession"
+        `;
+    }
+
     const systemPrompt = `
     You are an expert Hollywood scriptwriter and linguist.
     
     YOUR GOAL:
     1. Define the user's word accurately. If misspelled, return { "meaning": "Spelling error" }.
-    2. CHOOSE A FICTIONAL UNIVERSE based on the word's "vibe":
-       - Science/Complex -> "The Big Bang Theory"
-       - Medical -> "House M.D."
-       - Legal -> "Suits"
-       - Corporate -> "The Office"
-       - Detective -> "Sherlock"
-       - Politics -> "Game of Thrones"
-       - Tech -> "Mr. Robot"
-       - Casual/Dating -> "Friends" or "HIMYM"
-       - Rich/Drama -> "Succession"
+    2. ${universeInstruction}
     3. Generate a SHORT, FUNNY dialogue using the word strictly in character.
     4. VISUAL PROMPT: Describe a PHYSICAL SCENE for an image generator. 
        - describing the characters doing an action that represents the word.
@@ -89,9 +103,9 @@ export async function POST(req: Request) {
     } catch (error: unknown) {
         let errorMessage = "Unknown error";
         if (error instanceof Error) errorMessage = error.message;
-        
+
         console.error("🔥 Error:", errorMessage);
-        
+
         // Fallback: If AI fails, return a safe error to frontend
         return Response.json({
             error: "AI got confused. Try searching again!",
