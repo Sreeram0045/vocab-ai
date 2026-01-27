@@ -24,7 +24,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils"; // Make sure you have this utility (standard in shadcn)
+import { cn } from "@/lib/utils";
 
 const POPULAR_SHOWS = [
     { value: "friends", label: "Friends" },
@@ -57,6 +57,8 @@ export default function PreferencesModal({ isOpen, onSave, onClose, initialShows
     const [selectedShows, setSelectedShows] = useState<string[]>(initialShows);
     const [isSaving, setIsSaving] = useState(false);
 
+    // LOGIC: If the user came in with shows (initialShows > 0), they are allowed to close.
+    // If they came in with nothing (New User), they MUST save (canClose = false).
     const canClose = initialShows.length > 0;
 
     useEffect(() => {
@@ -108,9 +110,9 @@ export default function PreferencesModal({ isOpen, onSave, onClose, initialShows
             <DialogContent
                 className={cn(
                     "sm:max-w-md bg-black/90 border-white/20 backdrop-blur-xl text-white",
-                    // HACK: This hides the default 'X' button if the user is NOT allowed to close.
-                    // The default close button is usually the first button inside DialogContent.
-                    !canClose && "[&>button]:hidden"
+                    // FIX IS HERE: We only hide buttons that are 'absolute' (which is the Close 'X' button)
+                    // This allows the standard relative buttons (like Save) to stay visible.
+                    !canClose && "[&>button.absolute]:hidden"
                 )}
             >
                 <DialogHeader>
@@ -139,8 +141,8 @@ export default function PreferencesModal({ isOpen, onSave, onClose, initialShows
                         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-zinc-900 border-zinc-700">
                             <Command className="bg-zinc-900 text-white">
                                 <CommandInput placeholder="Type a show name..." />
-                                {/* Scrollable List Fix */}
-                                <CommandList className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                                {/* SCROLL FIX: Ensure pointer-events are auto and max-height is set */}
+                                <CommandList className="max-h-[200px] overflow-y-auto pointer-events-auto custom-scrollbar">
                                     <CommandEmpty>No show found.</CommandEmpty>
                                     <CommandGroup>
                                         {POPULAR_SHOWS.map((show) => (
@@ -189,6 +191,7 @@ export default function PreferencesModal({ isOpen, onSave, onClose, initialShows
                     </div>
                 </div>
 
+                {/* This button was being hidden before! Now it should be visible. */}
                 <Button
                     onClick={handleSave}
                     disabled={selectedShows.length === 0 || isSaving}
