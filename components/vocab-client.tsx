@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Sparkles, AlertCircle, ArrowRight, Book } from "lucide-react";
+import { Search, Sparkles, AlertCircle, ArrowRight, Book, Settings } from "lucide-react"; // Added Settings icon
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,9 @@ import {
 import TiptapEditor from "./editor/tiptap-editor";
 import WordCard from "./word-card";
 
-// --- THE BLUEPRINT (Interface) ---
+// --- NEW IMPORT ---
+import PreferencesModal from "@/components/preferences-modal";
+
 interface VocabData {
   _id?: string;
   word: string;
@@ -44,13 +46,21 @@ export default function VocabClient() {
   const [noteContent, setNoteContent] = useState("");
   const [vocabularyWords, setVocabularyWords] = useState<string[]>([]);
 
+  // --- NEW STATE FOR PREFERENCES ---
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [userShows, setUserShows] = useState<string[]>([]);
+  // ---------------------------------
+
   // Fetch initial data
   useEffect(() => {
     async function fetchData() {
       try {
-        const [noteRes, historyRes] = await Promise.all([
+        // We add the fetch for user data here
+        const [noteRes, historyRes, userRes] = await Promise.all([
           fetch("/api/notes"),
-          fetch("/api/history/list")
+          fetch("/api/history/list"),
+          fetch("/api/user/me") // Checks who the user is
         ]);
 
         if (noteRes.ok) {
@@ -62,8 +72,24 @@ export default function VocabClient() {
           const historyData = await historyRes.json();
           setVocabularyWords(historyData || []);
         }
+
+        // --- NEW LOGIC: Check User Preferences ---
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUserEmail(userData.email);
+
+          // LOGIC: If they have shows, load them.
+          // If they DON'T have shows, force open the onboarding modal.
+          if (userData.preferences?.watchedShows?.length > 0) {
+            setUserShows(userData.preferences.watchedShows);
+          } else {
+            setShowPreferences(true);
+          }
+        }
+        // -----------------------------------------
+
       } catch (err) {
-        console.error("Failed to fetch initial journal data", err);
+        console.error("Failed to fetch initial data", err);
       }
     }
     fetchData();
@@ -72,7 +98,7 @@ export default function VocabClient() {
   // Update vocabulary list when a new word is saved
   useEffect(() => {
     if (result?.word && !vocabularyWords.includes(result.word.toLowerCase())) {
-        setVocabularyWords(prev => [...prev, result.word.toLowerCase()]);
+      setVocabularyWords(prev => [...prev, result.word.toLowerCase()]);
     }
   }, [result, vocabularyWords]);
 
@@ -88,10 +114,16 @@ export default function VocabClient() {
     }
   }, []);
 
+  // --- NEW HANDLER: Called when the modal successfully saves ---
+  const handlePreferencesSaved = (shows: string[]) => {
+    setUserShows(shows);
+    setShowPreferences(false);
+  };
+
   // --- THE BRAIN: Handles the Search Logic ---
   async function handleSearch() {
     if (!inputWord.trim()) return;
-    
+
     const currentSearchWord = inputWord.trim();
 
     // 1. Reset everything
@@ -113,7 +145,7 @@ export default function VocabClient() {
           setResult(historyData);
           setInputWord("");
           setLoadingText(false);
-          setLoadingImage(false); // Ensure image loading is false
+          setLoadingImage(false);
           return; // STOP HERE
         }
       }
@@ -121,9 +153,13 @@ export default function VocabClient() {
 
       // --- STEP 1: CACHE MISS - Generate Content ---
       // 2. Fetch TEXT (The Definition)
+      // UPDATED: We now pass the user's preferred shows to the AI
       const textRes = await fetch("/api/generate", {
         method: "POST",
-        body: JSON.stringify({ word: currentSearchWord }),
+        body: JSON.stringify({
+          word: currentSearchWord,
+          preferredShows: userShows // <--- PASSING THE VIBE
+        }),
       });
 
       const textData = await textRes.json();
@@ -175,90 +211,110 @@ export default function VocabClient() {
   // --- THE UI: What the user sees ---
   return (
     <div className="max-w-5xl w-full p-6 md:p-12 space-y-16 relative">
-        
-        {/* --- JOURNAL SIDEBAR --- */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 opacity-0 animate-fade-in-up delay-500"
-            >
-              <Book size={24} />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="sm:max-w-2xl bg-zinc-950 border-white/10 overflow-y-auto">
-            <SheetHeader className="mb-8">
-              <SheetTitle className="text-3xl font-bold tracking-tight">Vocabulary Journal</SheetTitle>
-              <SheetDescription className="text-zinc-400">
-                Practice using your learned words. They will be highlighted automatically as you type.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="mt-4">
-              <TiptapEditor 
-                initialContent={noteContent} 
-                vocabularyWords={vocabularyWords}
-                onSave={handleSaveNote}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
 
-        <div className="text-center space-y-4">
-           <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide opacity-0 animate-fade-in-up">
-            Master vocabulary through the lens of cinema.
-          </p>
-        </div>
+      {/* --- NEW: SETTINGS BUTTON (To Edit Preferences) --- */}
+      {/* This allows users to re-open the modal later */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setShowPreferences(true)}
+        className="fixed top-8 right-8 text-white/50 hover:text-white hover:bg-white/10 z-50 rounded-full"
+      >
+        <Settings size={24} />
+      </Button>
 
-        {/* --- REDESIGNED SEARCH BAR: The "Obsidian Dock" --- */}
-        <div className="relative max-w-lg mx-auto w-full group z-50 opacity-0 animate-fade-in-up delay-200">
-           {/* Glow Effect behind */}
-           <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
-           
-           <div className="relative flex items-center gap-2 bg-black border border-white/20 rounded-full p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30">
-            <Search className="ml-3 text-zinc-500 group-focus-within:text-zinc-300 transition-colors" size={20} />
-            <Input
-              placeholder="Type a word..."
-              className="flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-lg h-12 font-light tracking-wide rounded-full"
-              value={inputWord}
-              onChange={(e) => setInputWord(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+      {/* --- JOURNAL SIDEBAR --- */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 opacity-0 animate-fade-in-up delay-500"
+          >
+            <Book size={24} />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="right" className="sm:max-w-2xl bg-zinc-950 border-white/10 overflow-y-auto">
+          <SheetHeader className="mb-8">
+            <SheetTitle className="text-3xl font-bold tracking-tight">Vocabulary Journal</SheetTitle>
+            <SheetDescription className="text-zinc-400">
+              Practice using your learned words. They will be highlighted automatically as you type.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <TiptapEditor
+              initialContent={noteContent}
+              vocabularyWords={vocabularyWords}
+              onSave={handleSaveNote}
             />
-            <Button
-              onClick={handleSearch}
-              disabled={loadingText || !inputWord.trim()}
-              size="icon"
-              className="h-12 w-12 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-            >
-              {loadingText ? <Sparkles className="animate-spin text-black" size={20} /> : <ArrowRight size={24} />}
-            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <div className="text-center space-y-4">
+        <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide opacity-0 animate-fade-in-up">
+          Master vocabulary through the lens of cinema.
+        </p>
+      </div>
+
+      {/* --- REDESIGNED SEARCH BAR: The "Obsidian Dock" --- */}
+      <div className="relative max-w-lg mx-auto w-full group z-50 opacity-0 animate-fade-in-up delay-200">
+        {/* Glow Effect behind */}
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+
+        <div className="relative flex items-center gap-2 bg-black border border-white/20 rounded-full p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30">
+          <Search className="ml-3 text-zinc-500 group-focus-within:text-zinc-300 transition-colors" size={20} />
+          <Input
+            placeholder="Type a word..."
+            className="flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-lg h-12 font-light tracking-wide rounded-full"
+            value={inputWord}
+            onChange={(e) => setInputWord(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          />
+          <Button
+            onClick={handleSearch}
+            disabled={loadingText || !inputWord.trim()}
+            size="icon"
+            className="h-12 w-12 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+          >
+            {loadingText ? <Sparkles className="animate-spin text-black" size={20} /> : <ArrowRight size={24} />}
+          </Button>
+        </div>
+      </div>
+
+      {/* ERROR MESSAGE */}
+      {error && (
+        <Alert variant="destructive" className="bg-red-950/30 border-red-900/50 text-red-200">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* LOADING SKELETON */}
+      {loadingText && (
+        <div className="space-y-8 animate-pulse">
+          <div className="h-40 w-full rounded-3xl bg-white/5 border border-white/20" />
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="h-80 w-full rounded-3xl bg-white/5 border border-white/20" />
+            <div className="h-80 w-full rounded-3xl bg-white/5 border border-white/20" />
           </div>
         </div>
+      )}
 
-        {/* ERROR MESSAGE */}
-        {error && (
-          <Alert variant="destructive" className="bg-red-950/30 border-red-900/50 text-red-200">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+      {/* --- RESULTS AREA --- */}
+      {result && !loadingText && (
+        <WordCard data={result} loadingImage={loadingImage} />
+      )}
 
-        {/* LOADING SKELETON */}
-        {loadingText && (
-          <div className="space-y-8 animate-pulse">
-            <div className="h-40 w-full rounded-3xl bg-white/5 border border-white/20" />
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="h-80 w-full rounded-3xl bg-white/5 border border-white/20" />
-              <div className="h-80 w-full rounded-3xl bg-white/5 border border-white/20" />
-            </div>
-          </div>
-        )}
-
-        {/* --- RESULTS AREA --- */}
-        {result && !loadingText && (
-          <WordCard data={result} loadingImage={loadingImage} />
-        )}
+      {/* --- NEW: THE PREFERENCES MODAL --- */}
+      <PreferencesModal
+        isOpen={showPreferences}
+        initialShows={userShows}
+        userEmail={userEmail}
+        onSave={handlePreferencesSaved}
+        onClose={() => setShowPreferences(false)}
+      />
     </div>
   );
 }
