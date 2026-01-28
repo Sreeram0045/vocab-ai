@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Search, Sparkles, AlertCircle, ArrowRight, Book, Settings } from "lucide-react"; // Added Settings icon
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Search, Sparkles, AlertCircle, ArrowRight, Book, Plus, History, LogOut, Tv, User, Settings2 } from "lucide-react";
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -15,11 +17,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import TiptapEditor from "./editor/tiptap-editor";
-import WordCard from "./word-card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// --- NEW IMPORT ---
+import WordCard from "./word-card";
 import PreferencesModal from "@/components/preferences-modal";
+import { handleSignOut } from "@/app/actions";
 
 interface VocabData {
   _id?: string;
@@ -34,7 +43,15 @@ interface VocabData {
   imageUrl?: string;
 }
 
-export default function VocabClient() {
+interface VocabClientProps {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null;
+}
+
+export default function VocabClient({ user }: VocabClientProps) {
   // --- STATE: The "Memory" of the Screen ---
   const [inputWord, setInputWord] = useState("");
   const [result, setResult] = useState<VocabData | null>(null);
@@ -43,8 +60,7 @@ export default function VocabClient() {
   const [error, setError] = useState("");
 
   // Journal State
-  const [noteContent, setNoteContent] = useState("");
-  const [vocabularyWords, setVocabularyWords] = useState<string[]>([]);
+  const [notesList, setNotesList] = useState<any[]>([]);
 
   // --- NEW STATE FOR PREFERENCES ---
   const [showPreferences, setShowPreferences] = useState(false);
@@ -64,13 +80,16 @@ export default function VocabClient() {
         ]);
 
         if (noteRes.ok) {
-          const noteData = await noteRes.json();
-          setNoteContent(noteData.content || "");
+          const notesData = await noteRes.json();
+          // Ensure we have an array
+          if (Array.isArray(notesData)) {
+            setNotesList(notesData);
+          }
         }
 
         if (historyRes.ok) {
-          const historyData = await historyRes.json();
-          setVocabularyWords(historyData || []);
+          // const historyData = await historyRes.json();
+          // Logic for history if needed
         }
 
         // --- NEW LOGIC: Check User Preferences ---
@@ -95,24 +114,21 @@ export default function VocabClient() {
     fetchData();
   }, []);
 
-  // Update vocabulary list when a new word is saved
-  useEffect(() => {
-    if (result?.word && !vocabularyWords.includes(result.word.toLowerCase())) {
-      setVocabularyWords(prev => [...prev, result.word.toLowerCase()]);
-    }
-  }, [result, vocabularyWords]);
-
-  const handleSaveNote = useCallback(async (content: string) => {
-    setNoteContent(content);
+  // --- NEW HANDLER: Create a new note and navigate ---
+  const handleCreateNote = async () => {
     try {
-      await fetch("/api/notes", {
+      const res = await fetch("/api/notes", {
         method: "POST",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ title: "Untitled Note", content: "" }),
       });
+      if (res.ok) {
+        const newNote = await res.json();
+        window.location.href = `/notes/${newNote._id}`;
+      }
     } catch (err) {
-      console.error("Failed to auto-save note", err);
+      console.error("Failed to create note", err);
     }
-  }, []);
+  };
 
   // --- NEW HANDLER: Called when the modal successfully saves ---
   const handlePreferencesSaved = (shows: string[]) => {
@@ -212,16 +228,75 @@ export default function VocabClient() {
   return (
     <div className="max-w-5xl w-full p-6 md:p-12 space-y-16 relative">
 
-      {/* --- NEW: SETTINGS BUTTON (To Edit Preferences) --- */}
-      {/* This allows users to re-open the modal later */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setShowPreferences(true)}
-        className="fixed top-8 right-8 text-white/50 hover:text-white hover:bg-white/10 z-50 rounded-full"
-      >
-        <Settings size={24} />
-      </Button>
+      {/* --- STICKY NAVBAR --- */}
+      <div className="w-full flex justify-between items-center sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-black/40 p-4 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] mb-8">
+        <a href="/" className="flex items-center gap-1 select-none pl-2 cursor-pointer hover:opacity-80 transition-opacity">
+          <span className="text-xl font-black tracking-tighter text-white">
+            Vocabul
+          </span>
+          <span className="text-xl font-medium tracking-tight text-white/90">
+            AI
+          </span>
+        </a>
+        <div className="flex gap-3 items-center">
+          <Link href="/history">
+            <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer">
+              <History className="w-5 h-5" />
+            </Button>
+          </Link>
+
+          {/* Profile Dropdown */}
+          {user ? (
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                   <Button 
+                     variant="ghost" 
+                     className="relative h-10 w-10 rounded-full p-0 overflow-hidden border border-white/10 hover:border-white/50 transition-all cursor-pointer bg-zinc-900"
+                   >
+                      {user.image ? (
+                         <Image
+                            src={user.image}
+                            alt={user.name || "User"}
+                            fill
+                            className="object-cover"
+                         />
+                      ) : (
+                         <div className="h-full w-full flex items-center justify-center bg-emerald-500/10 text-emerald-500">
+                            {user.name ? (
+                                <span className="text-sm font-bold">{user.name[0].toUpperCase()}</span>
+                            ) : (
+                                <User className="h-5 w-5" />
+                            )}
+                         </div>
+                      )}
+                   </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-zinc-950 border-zinc-800 text-zinc-200" align="end" forceMount>
+                   <DropdownMenuLabel className="font-normal p-3">
+                      <div className="flex flex-col space-y-1">
+                         <p className="text-sm font-medium leading-none text-white">{user.name}</p>
+                         <p className="text-xs leading-none text-zinc-500 truncate">{user.email}</p>
+                      </div>
+                   </DropdownMenuLabel>
+                   <DropdownMenuSeparator className="bg-zinc-800" />
+                   <DropdownMenuItem onClick={() => setShowPreferences(true)} className="cursor-pointer focus:bg-zinc-900 focus:text-white p-2.5">
+                      <Settings2 className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-white" />
+                      <span>Personalize</span>
+                   </DropdownMenuItem>
+                   <DropdownMenuSeparator className="bg-zinc-800" />
+                   <DropdownMenuItem onClick={() => handleSignOut()} className="cursor-pointer text-red-400 focus:text-red-300 focus:bg-red-950/20 p-2.5">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sign out</span>
+                   </DropdownMenuItem>
+                </DropdownMenuContent>
+             </DropdownMenu>
+          ) : (
+             <Link href="/api/auth/signin">
+                <Button variant="outline" size="sm" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white">Sign In</Button>
+             </Link>
+          )}
+        </div>
+      </div>
 
       {/* --- JOURNAL SIDEBAR --- */}
       <Sheet>
@@ -234,19 +309,69 @@ export default function VocabClient() {
             <Book size={24} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="sm:max-w-2xl bg-zinc-950 border-white/10 overflow-y-auto">
-          <SheetHeader className="mb-8">
-            <SheetTitle className="text-3xl font-bold tracking-tight">Vocabulary Journal</SheetTitle>
-            <SheetDescription className="text-zinc-400">
-              Practice using your learned words. They will be highlighted automatically as you type.
+        <SheetContent side="right" className="sm:max-w-md bg-zinc-950/95 backdrop-blur-xl border-l border-white/10 overflow-y-auto">
+          <SheetHeader className="mb-8 text-left">
+            <SheetTitle className="text-2xl font-black tracking-tighter text-white">Writer&apos;s Room</SheetTitle>
+            <SheetDescription className="text-zinc-500 font-light">
+              Your creative workspace.
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-4">
-            <TiptapEditor
-              initialContent={noteContent}
-              vocabularyWords={vocabularyWords}
-              onSave={handleSaveNote}
-            />
+          
+          <div className="flex flex-col gap-6 mt-2">
+            
+            {/* Primary Action: Go to Dashboard */}
+            <Link href="/notes" className="group relative flex items-center justify-between p-6 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-emerald-500/60 hover:from-emerald-900/20 hover:to-black transition-all duration-500 overflow-hidden cursor-pointer">
+                <div className="relative z-10">
+                   <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">Enter Room</h3>
+                   <p className="text-xs text-zinc-400 mt-1">View all {notesList.length} notes</p>
+                </div>
+                <div className="relative z-10 p-3 rounded-full bg-white/5 group-hover:bg-emerald-500/20 group-hover:text-emerald-400 transition-all text-white/50">
+                    <ArrowRight size={20} />
+                </div>
+                {/* Glow */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+            </Link>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                 <h3 className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Quick Drafts</h3>
+                 <Button 
+                   variant="ghost" 
+                   size="sm" 
+                   onClick={handleCreateNote} 
+                   className="h-8 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 -mr-2 cursor-pointer"
+                 >
+                   <Plus className="w-3 h-3 mr-1.5" /> New Note
+                 </Button>
+              </div>
+
+              {notesList.length === 0 ? (
+                <div className="p-8 border border-dashed border-white/10 rounded-2xl text-center">
+                    <p className="text-zinc-600 italic text-sm mb-4">No notes yet.</p>
+                    <Button variant="secondary" size="sm" onClick={handleCreateNote} className="cursor-pointer">Create First Note</Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                {notesList.slice(0, 5).map((note) => (
+                  <Link 
+                    key={note._id} 
+                    href={`/notes/${note._id}`}
+                    className="block p-4 rounded-xl bg-black/20 border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all group cursor-pointer"
+                  >
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-medium text-zinc-300 group-hover:text-white transition-colors truncate pr-4 text-sm">
+                        {note.title || "Untitled Note"}
+                      </h4>
+                    </div>
+                    <p className="text-[10px] text-zinc-600 mt-2 font-mono uppercase tracking-wider">
+                      {new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </p>
+                  </Link>
+                ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </SheetContent>
       </Sheet>

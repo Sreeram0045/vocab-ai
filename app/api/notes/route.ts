@@ -2,32 +2,30 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import connectDB from "@/lib/db";
 import Note from "@/models/Note";
-import User from "@/models/User";
 
+// GET /api/notes - List all notes for the user
 export async function GET() {
   try {
     const session = await auth();
-    if (!session || !session.user || !session.user.email) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
-    // Find the note for this user
-    const note = await Note.findOne({ userId: session.user.id });
+    // Fetch notes, sorted by most recently updated
+    const notes = await Note.find({ userId: session.user.id })
+      .select("title content updatedAt createdAt")
+      .sort({ updatedAt: -1 });
 
-    if (!note) {
-      // If no note exists, return empty content instead of error
-      return NextResponse.json({ content: "" });
-    }
-
-    return NextResponse.json(note);
+    return NextResponse.json(notes);
   } catch (error: any) {
-    console.error("Error fetching note:", error);
+    console.error("Error fetching notes:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
+// POST /api/notes - Create a new note
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -35,24 +33,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { content, title } = await req.json();
+    const { title, content } = await req.json();
 
     await connectDB();
 
-    // Upsert the note for the user
-    const note = await Note.findOneAndUpdate(
-      { userId: session.user.id },
-      { 
-        content,
-        title: title || "My Vocabulary Journal",
-        userId: session.user.id
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    const newNote = await Note.create({
+      userId: session.user.id,
+      title: title || "Untitled Note",
+      content: content || "",
+    });
 
-    return NextResponse.json(note);
+    return NextResponse.json(newNote);
   } catch (error: any) {
-    console.error("Error saving note:", error);
+    console.error("Error creating note:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
