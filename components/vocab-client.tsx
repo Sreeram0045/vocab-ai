@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Sparkles, AlertCircle, ArrowRight, Book, Settings, Plus } from "lucide-react"; // Added Settings icon
+import Image from "next/image";
+import { Search, Sparkles, AlertCircle, ArrowRight, Book, Plus, History, LogOut, Tv, User } from "lucide-react";
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import WordCard from "./word-card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// --- NEW IMPORT ---
+import WordCard from "./word-card";
 import PreferencesModal from "@/components/preferences-modal";
+import { handleSignOut } from "@/app/actions";
 
 interface VocabData {
   _id?: string;
@@ -34,7 +43,15 @@ interface VocabData {
   imageUrl?: string;
 }
 
-export default function VocabClient() {
+interface VocabClientProps {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null;
+}
+
+export default function VocabClient({ user }: VocabClientProps) {
   // --- STATE: The "Memory" of the Screen ---
   const [inputWord, setInputWord] = useState("");
   const [result, setResult] = useState<VocabData | null>(null);
@@ -71,18 +88,8 @@ export default function VocabClient() {
         }
 
         if (historyRes.ok) {
-          const historyData = await historyRes.json();
-          // historyData is strictly string[] based on prior knowledge, 
-          // but let's be safe.
-          if (Array.isArray(historyData)) {
-             // Extract just the words if it's an object array, or just use it if it's strings
-             // Based on "history-list" route (not read here but inferred), it usually returns WordHistory objects?
-             // Actually previous code did: setVocabularyWords(historyData || []);
-             // Let's assume historyData is the list of *words* or objects. 
-             // If previous code worked, let's stick to it, but `vocabularyWords` was passed to Tiptap.
-             // We won't use Tiptap here anymore, so it matters less for this component, 
-             // but we might want to pass it to the new Notes page later.
-          }
+          // const historyData = await historyRes.json();
+          // Logic for history if needed
         }
 
         // --- NEW LOGIC: Check User Preferences ---
@@ -106,12 +113,6 @@ export default function VocabClient() {
     }
     fetchData();
   }, []);
-
-  // Update vocabulary list when a new word is saved
-  // (We don't need this locally anymore for the editor, but we keep the effect to not break logic if we re-add it)
-  useEffect(() => {
-    // This was just updating local state for the editor. 
-  }, [result]);
 
   // --- NEW HANDLER: Create a new note and navigate ---
   const handleCreateNote = async () => {
@@ -227,16 +228,75 @@ export default function VocabClient() {
   return (
     <div className="max-w-5xl w-full p-6 md:p-12 space-y-16 relative">
 
-      {/* --- NEW: SETTINGS BUTTON (To Edit Preferences) --- */}
-      {/* This allows users to re-open the modal later */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setShowPreferences(true)}
-        className="fixed top-8 right-8 text-white/50 hover:text-white hover:bg-white/10 z-50 rounded-full"
-      >
-        <Settings size={24} />
-      </Button>
+      {/* --- STICKY NAVBAR --- */}
+      <div className="w-full flex justify-between items-center sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-black/40 p-4 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] mb-8">
+        <a href="/" className="flex items-center gap-1 select-none pl-2 cursor-pointer hover:opacity-80 transition-opacity">
+          <span className="text-xl font-black tracking-tighter text-white">
+            Vocabul
+          </span>
+          <span className="text-xl font-medium tracking-tight text-white/90">
+            AI
+          </span>
+        </a>
+        <div className="flex gap-3 items-center">
+          <Link href="/history">
+            <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer">
+              <History className="w-5 h-5" />
+            </Button>
+          </Link>
+
+          {/* Profile Dropdown */}
+          {user ? (
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                   <Button 
+                     variant="ghost" 
+                     className="relative h-10 w-10 rounded-full p-0 overflow-hidden border border-white/10 hover:border-white/50 transition-all cursor-pointer bg-zinc-900"
+                   >
+                      {user.image ? (
+                         <Image
+                            src={user.image}
+                            alt={user.name || "User"}
+                            fill
+                            className="object-cover"
+                         />
+                      ) : (
+                         <div className="h-full w-full flex items-center justify-center bg-emerald-500/10 text-emerald-500">
+                            {user.name ? (
+                                <span className="text-sm font-bold">{user.name[0].toUpperCase()}</span>
+                            ) : (
+                                <User className="h-5 w-5" />
+                            )}
+                         </div>
+                      )}
+                   </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-zinc-950 border-zinc-800 text-zinc-200" align="end" forceMount>
+                   <DropdownMenuLabel className="font-normal p-3">
+                      <div className="flex flex-col space-y-1">
+                         <p className="text-sm font-medium leading-none text-white">{user.name}</p>
+                         <p className="text-xs leading-none text-zinc-500 truncate">{user.email}</p>
+                      </div>
+                   </DropdownMenuLabel>
+                   <DropdownMenuSeparator className="bg-zinc-800" />
+                   <DropdownMenuItem onClick={() => setShowPreferences(true)} className="cursor-pointer focus:bg-zinc-900 focus:text-white p-2.5">
+                      <Tv className="mr-2 h-4 w-4 text-emerald-500" />
+                      <span>Calibrate Vibe</span>
+                   </DropdownMenuItem>
+                   <DropdownMenuSeparator className="bg-zinc-800" />
+                   <DropdownMenuItem onClick={() => handleSignOut()} className="cursor-pointer text-red-400 focus:text-red-300 focus:bg-red-950/20 p-2.5">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sign out</span>
+                   </DropdownMenuItem>
+                </DropdownMenuContent>
+             </DropdownMenu>
+          ) : (
+             <Link href="/api/auth/signin">
+                <Button variant="outline" size="sm" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white">Sign In</Button>
+             </Link>
+          )}
+        </div>
+      </div>
 
       {/* --- JOURNAL SIDEBAR --- */}
       <Sheet>
