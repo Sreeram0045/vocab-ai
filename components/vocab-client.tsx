@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Sparkles, AlertCircle, ArrowRight, Book, Plus, History, LogOut, Tv, User } from "lucide-react";
+import { Search, Sparkles, AlertCircle, ArrowRight, Book, Plus, History, LogOut, Tv, User, Settings2 } from "lucide-react";
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -280,8 +280,8 @@ export default function VocabClient({ user }: VocabClientProps) {
                    </DropdownMenuLabel>
                    <DropdownMenuSeparator className="bg-zinc-800" />
                    <DropdownMenuItem onClick={() => setShowPreferences(true)} className="cursor-pointer focus:bg-zinc-900 focus:text-white p-2.5">
-                      <Tv className="mr-2 h-4 w-4 text-emerald-500" />
-                      <span>Calibrate Vibe</span>
+                      <Settings2 className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-white" />
+                      <span>Personalize</span>
                    </DropdownMenuItem>
                    <DropdownMenuSeparator className="bg-zinc-800" />
                    <DropdownMenuItem onClick={() => handleSignOut()} className="cursor-pointer text-red-400 focus:text-red-300 focus:bg-red-950/20 p-2.5">
