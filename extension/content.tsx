@@ -65,7 +65,8 @@ export default function VocabOverlay() {
       if (historyRes.ok) {
         const historyData = await historyRes.json()
         if (historyData) {
-          setData(historyData)
+          // Ensure word is set, even if DB record is weird
+          setData({ ...historyData, word: historyData.word || searchWord })
           setLoading(false)
           return
         }

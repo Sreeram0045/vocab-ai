@@ -23,6 +23,7 @@ interface WordCardProps {
 }
 
 export default function WordCard({ data, loadingImage = false }: WordCardProps) {
+  console.log("WordCard Rendered with:", data);
   const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
 
   useEffect(() => {
@@ -43,10 +44,12 @@ export default function WordCard({ data, loadingImage = false }: WordCardProps) 
     synth.getVoices().length ? detect() : (synth.onvoiceschanged = detect);
   }, []);
 
+  const safeWord = (data && typeof data.word === 'string' && data.word.length > 0) ? data.word : "Unknown";
+
   function speakWord() {
     if (!voice) return;
 
-    const utterance = new SpeechSynthesisUtterance(data.word);
+    const utterance = new SpeechSynthesisUtterance(safeWord);
     utterance.rate = 0.8;
     utterance.voice = voice;
     window.speechSynthesis.speak(utterance);
@@ -65,7 +68,7 @@ export default function WordCard({ data, loadingImage = false }: WordCardProps) 
             <div>
               <div className="flex items-center justify-between gap-4">
                  <h2 className="text-4xl font-black text-white mb-2">
-                  {data.word.charAt(0).toUpperCase() + data.word.slice(1)}
+                  {safeWord.charAt(0).toUpperCase() + safeWord.slice(1)}
                 </h2>
                 {voice && (
                   <button
@@ -97,11 +100,11 @@ export default function WordCard({ data, loadingImage = false }: WordCardProps) 
                   <Check size={12} /> Synonyms
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.synonyms.slice(0, 3).map(syn => (
+                  {data.synonyms?.slice(0, 3).map(syn => (
                     <span key={syn} className="flex items-center px-1.5 py-0.5 rounded bg-emerald-500/5 border border-emerald-500/10 text-emerald-400/80 text-xs">
                        {syn}
                     </span>
-                  ))}
+                  )) || <span className="text-white/20 text-[10px]">None</span>}
                 </div>
               </div>
               <div>
@@ -109,11 +112,11 @@ export default function WordCard({ data, loadingImage = false }: WordCardProps) 
                   <X size={12} /> Antonyms
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.antonyms.slice(0, 3).map(ant => (
+                  {data.antonyms?.slice(0, 3).map(ant => (
                     <span key={ant} className="flex items-center px-1.5 py-0.5 rounded bg-rose-500/5 border border-rose-500/10 text-rose-400/80 text-xs">
                       {ant}
                     </span>
-                  ))}
+                  )) || <span className="text-white/20 text-[10px]">None</span>}
                 </div>
               </div>
             </div>
@@ -150,7 +153,7 @@ export default function WordCard({ data, loadingImage = false }: WordCardProps) 
           </div>
 
           <div className="space-y-3">
-            {data.conversation.map((line, i) => {
+            {data.conversation?.map((line, i) => {
               const [speaker, ...rest] = line.split(":");
               const dialogue = rest.join(":").trim();
 
@@ -164,7 +167,7 @@ export default function WordCard({ data, loadingImage = false }: WordCardProps) 
                   </p>
                 </div>
               );
-            })}
+            }) || <div className="text-white/20 text-xs italic">No script generated.</div>}
           </div>
         </div>
 

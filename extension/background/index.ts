@@ -44,18 +44,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const response = await fetch(`${BASE_URL}${endpoint}`, options);
         
         const data = await response.text();
-        let jsonData = null;
+        let responseData = data;
         try {
-            jsonData = JSON.parse(data);
+            responseData = JSON.parse(data);
         } catch (e) {
-            // Not JSON
+            // Not JSON, keep as text
         }
 
         sendResponse({
           ok: response.ok,
           status: response.status,
           statusText: response.statusText,
-          data: jsonData || data
+          data: responseData
         });
       } catch (error: any) {
         sendResponse({
