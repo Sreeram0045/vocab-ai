@@ -1,6 +1,6 @@
 {
-  "name": "extension",
-  "displayName": "Extension",
+  "name": "vocabulai-extension",
+  "displayName": "VocabulAI",
   "version": "0.0.1",
   "description": "VocabulAI extension.",
   "author": "novice",
