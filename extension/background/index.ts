@@ -25,28 +25,40 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // COMMAND LISTENER (Keyboard Shortcut)
 chrome.commands.onCommand.addListener(async (command) => {
+  console.log("🔥 Command received:", command);
+  
   if (command === "ask-vocabulai") {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
     if (tab?.id) {
-      // Execute script to get selection
+      console.log("👉 Executing script on tab:", tab.id);
+      
       try {
         const results = await chrome.scripting.executeScript({
           target: { tabId: tab.id },
           func: () => window.getSelection()?.toString()
         });
 
+        console.log("✅ Script results:", results);
+
         if (results && results[0] && results[0].result) {
           const text = results[0].result.trim();
+          console.log("📝 Selected text:", text);
+          
           if (text) {
              chrome.tabs.sendMessage(tab.id, {
                 type: "OPEN_VOCAB_MODAL",
                 text: text
              });
+          } else {
+            console.log("⚠️ No text selected");
           }
         }
       } catch (err) {
-        console.error("Failed to get selection:", err);
+        console.error("❌ Failed to get selection:", err);
       }
+    } else {
+      console.log("❌ No active tab found");
     }
   }
 });

@@ -45,13 +45,14 @@
       "contextMenus",
       "storage",
       "cookies",
-      "scripting"
+      "scripting",
+      "activeTab"
     ],
     "commands": {
       "ask-vocabulai": {
         "suggested_key": {
-          "default": "Alt+V",
-          "mac": "Alt+V"
+          "default": "Alt+Shift+E",
+          "mac": "Alt+Shift+E"
         },
         "description": "Ask VocabulAI"
       }
