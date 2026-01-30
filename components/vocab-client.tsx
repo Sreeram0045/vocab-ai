@@ -429,7 +429,7 @@ export default function VocabClient({ user }: VocabClientProps) {
 
       {/* --- RESULTS AREA --- */}
       {result && !loadingText && (
-        <WordCard data={result} loadingImage={loadingImage} />
+        <WordCard data={result} loadingImage={loadingImage} ImageComponent={Image} />
       )}
 
       {/* --- NEW: THE PREFERENCES MODAL --- */}

@@ -23,6 +23,34 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 })
 
+// COMMAND LISTENER (Keyboard Shortcut)
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === "ask-vocabulai") {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      // Execute script to get selection
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => window.getSelection()?.toString()
+        });
+
+        if (results && results[0] && results[0].result) {
+          const text = results[0].result.trim();
+          if (text) {
+             chrome.tabs.sendMessage(tab.id, {
+                type: "OPEN_VOCAB_MODAL",
+                text: text
+             });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to get selection:", err);
+      }
+    }
+  }
+});
+
 // PROXY FETCH LISTENER
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "PROXY_FETCH") {

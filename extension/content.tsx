@@ -6,7 +6,7 @@ import { X, Sparkles, Loader2, BookOpen } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import WordCard from "@/components/word-card"
-import { api } from "@/lib/api"
+import { api } from "~/lib/api"
 
 export const config: PlasmoCSConfig = {
   matches: ["<all_urls>"]
@@ -113,10 +113,27 @@ export default function VocabOverlay() {
     setError("")
   }
 
+  // Handle Escape Key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isOpen && e.key === "Escape") {
+        handleClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed top-4 right-4 z-[99999] font-sans text-base">
+    <div className="fixed inset-0 z-[99999] font-sans text-base flex items-start justify-end p-8 pointer-events-none">
+      {/* BACKDROP - Intercepts clicks to close */}
+      <div 
+        className="absolute inset-0 pointer-events-auto" 
+        onClick={handleClose}
+      />
+      
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -124,7 +141,7 @@ export default function VocabOverlay() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 50, scale: 0.95 }}
             transition={{ type: "spring", duration: 0.5 }}
-            className="w-[400px] max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-950 border border-white/10 shadow-2xl relative"
+            className="pointer-events-auto w-[400px] max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-950 border border-white/10 shadow-2xl relative z-10"
           >
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-zinc-950/80 backdrop-blur-md border-b border-white/5">
@@ -161,7 +178,7 @@ export default function VocabOverlay() {
                   )}
                 </div>
               ) : data ? (
-                <WordCard data={data} loadingImage={loadingImage} />
+                <WordCard data={data} loadingImage={loadingImage} compact={true} />
               ) : null}
             </div>
 
