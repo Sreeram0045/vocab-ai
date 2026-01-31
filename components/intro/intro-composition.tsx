@@ -58,11 +58,11 @@ const LogoText = ({ frame, fps, width }: { frame: number, fps: number, width: nu
     );
     const gradientPosition = interpolate(shimmerProgress, [0, 1], [-100, 200]);
 
-    // 5. Footer Reveal
+    // 5. Footer Reveal (Starts earlier now)
     const footerOpacity = interpolate(
         frame,
-        [55, 75],
-        [0, 0.5],
+        [45, 65], // Moved back 10 frames (was 55, 75)
+        [0, 1],   // increased max opacity to 1 for clarity
         { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
     );
 
@@ -78,7 +78,7 @@ const LogoText = ({ frame, fps, width }: { frame: number, fps: number, width: nu
             >
                 {/* ANCHOR TEXT: Vocabul */}
                 <h1 
-                    className="text-5xl sm:text-7xl md:text-9xl font-black text-white leading-none tracking-tighter relative"
+                    className="text-7xl sm:text-8xl md:text-9xl font-black text-white leading-none tracking-tighter relative"
                     style={{
                         transform: `translateY(${translateY}px)`,
                         filter: `blur(${blur}px)`,
@@ -121,15 +121,47 @@ const LogoText = ({ frame, fps, width }: { frame: number, fps: number, width: nu
                 </h1>
             </div>
 
-            {/* FOOTER - Stays centered on screen (doesn't move with the logo shift) */}
+            {/* 5. CINEMATIC BOTTOM VIGNETTE - Solves contrast issues elegantly */}
             <div 
-                className="absolute bottom-16 md:bottom-24 text-white text-xs md:text-sm tracking-[0.3em] font-light uppercase opacity-0"
+                className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-black via-black/60 to-transparent z-0"
+                style={{ opacity: footerOpacity }}
+            />
+
+            {/* FOOTER - Redesigned as a Studio Signature */}
+            <div 
+                className="absolute bottom-14 md:bottom-20 z-10 flex flex-col items-center justify-center gap-2 md:gap-3"
                 style={{
                     opacity: footerOpacity,
-                    transform: `translateY(${interpolate(frame, [55, 75], [10, 0], { extrapolateRight: 'clamp' })}px)`
+                    transform: `translateY(${interpolate(frame, [45, 65], [10, 0], { extrapolateRight: 'clamp' })}px)`,
                 }}
             >
-                Crafted with <span className="text-emerald-500 font-bold mx-1 drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">Passion</span>
+                <div className="text-white/60 text-[10px] md:text-xs tracking-[0.4em] font-light uppercase">
+                    Crafted with
+                </div>
+                
+                {/* "PASSION" with a cinematic underline */}
+                <div className="relative">
+                    <span 
+                        className="text-xl md:text-3xl font-black italic tracking-wider"
+                        style={{
+                            backgroundImage: 'linear-gradient(to right, #34d399, #10b981, #fff)',
+                            WebkitBackgroundClip: 'text',
+                            color: 'transparent',
+                            filter: 'drop-shadow(0 0 20px rgba(52, 211, 153, 0.4))'
+                        }}
+                    >
+                        PASSION
+                    </span>
+                    
+                    {/* The "Signature" Underline */}
+                    <div 
+                        className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-[2px] bg-emerald-500/80 rounded-full"
+                        style={{
+                            width: `${interpolate(frame, [50, 80], [0, 100], { extrapolateRight: 'clamp' })}%`,
+                            boxShadow: '0 0 10px rgba(16,185,129, 0.8)'
+                        }}
+                    />
+                </div>
             </div>
         </div>
     );
