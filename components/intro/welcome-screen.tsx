@@ -4,7 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { Player } from '@remotion/player';
 import { IntroComposition } from './intro-composition';
 
-const DURATION_IN_FRAMES = 110; // ~3.5 seconds
+// Duration: ~4 seconds (120 frames @ 30fps)
+// Gives enough time for the shimmer to pass (ends at frame 90) and then fade out (90-110).
+const DURATION_IN_FRAMES = 120; 
 const FPS = 30;
 
 export default function WelcomeScreen() {
@@ -22,7 +24,6 @@ export default function WelcomeScreen() {
       height: window.innerHeight
     });
 
-    // Optional: Update on resize (though typically splash screens are short-lived)
     const handleResize = () => {
       setDimensions({
         width: window.innerWidth,
@@ -35,44 +36,45 @@ export default function WelcomeScreen() {
     const hasSeenIntro = sessionStorage.getItem("vocab-intro-seen");
 
     if (hasSeenIntro) {
-      // If seen, do nothing (keep isVisible false)
-      window.removeEventListener('resize', handleResize);
       return;
     }
 
-    // If not seen, show it and mark as seen
+    // Start Sequence
     setIsVisible(true);
     setShouldRender(true);
     sessionStorage.setItem("vocab-intro-seen", "true");
     
-    // Start fade-out animation
+    // The composition handles its own internal opacity fade from frame 90-110.
+    // We just need to remove the DOM element after the video finishes.
     const animationDurationMs = (DURATION_IN_FRAMES / FPS) * 1000;
     
-    const exitTimer = setTimeout(() => {
-      setIsVisible(false);
+    // Add a small buffer (100ms) to ensure we don't cut off the very end
+    const removeTimer = setTimeout(() => {
+      setIsVisible(false); // Triggers CSS transition to 0 opacity
+      
+      // Give CSS transition time to finish before unmounting
+      setTimeout(() => {
+        setShouldRender(false);
+      }, 500); 
+      
     }, animationDurationMs);
 
-    // Unmount from DOM after fade-out transition (1s)
-    const removeTimer = setTimeout(() => {
-      setShouldRender(false);
-      window.removeEventListener('resize', handleResize);
-    }, animationDurationMs + 1000);
-
     return () => {
-      clearTimeout(exitTimer);
       clearTimeout(removeTimer);
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  // Prevent hydration mismatch
   if (!mounted || !shouldRender) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-[100] bg-black transition-opacity duration-1000 ease-in-out flex items-center justify-center ${
-        isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
-      }`}
+      className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
+      style={{
+          opacity: isVisible ? 1 : 0,
+          pointerEvents: isVisible ? 'auto' : 'none',
+          transition: 'opacity 0.5s ease-out'
+      }}
     >
       <div className="w-full h-full">
         <Player
@@ -84,6 +86,7 @@ export default function WelcomeScreen() {
           style={{
             width: '100%',
             height: '100%',
+            backgroundColor: 'black' // Force black background on player too
           }}
           inputProps={{}}
           autoPlay
