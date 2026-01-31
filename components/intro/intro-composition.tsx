@@ -19,7 +19,7 @@ const NoiseOverlay = () => (
     />
 );
 
-const LogoText = ({ frame, fps }: { frame: number, fps: number }) => {
+const LogoText = ({ frame, fps, width }: { frame: number, fps: number, width: number }) => {
     // 1. "Vocabul" Entrance
     const entrance = spring({
         frame: frame - 10,
@@ -41,10 +41,12 @@ const LogoText = ({ frame, fps }: { frame: number, fps: number }) => {
     const aiBlur = interpolate(aiSpring, [0, 1], [10, 0]);
 
     // 3. OPTICAL RE-CENTERING (The Camera Pan)
+    const isMobile = width < 768;
+    const shiftAmount = isMobile ? -15 : -30;
     const reCenterShift = interpolate(
         aiSpring,
         [0, 1],
-        [0, -30] // Shift left slightly less since AI is smaller
+        [0, shiftAmount]
     );
 
     // 4. Shimmer Effect
@@ -76,7 +78,7 @@ const LogoText = ({ frame, fps }: { frame: number, fps: number }) => {
             >
                 {/* ANCHOR TEXT: Vocabul */}
                 <h1 
-                    className="text-7xl sm:text-8xl md:text-9xl font-black text-white leading-none tracking-tighter relative"
+                    className="text-5xl sm:text-7xl md:text-9xl font-black text-white leading-none tracking-tighter relative"
                     style={{
                         transform: `translateY(${translateY}px)`,
                         filter: `blur(${blur}px)`,
@@ -102,7 +104,7 @@ const LogoText = ({ frame, fps }: { frame: number, fps: number }) => {
                         }}
                     >
                         <span
-                            className="text-6xl sm:text-7xl md:text-8xl font-black italic"
+                            className="text-4xl sm:text-6xl md:text-8xl font-black italic"
                             style={{
                                 // Same Metallic Gradient
                                 backgroundImage: `linear-gradient(to bottom right, #fff, #999)`,
@@ -135,7 +137,7 @@ const LogoText = ({ frame, fps }: { frame: number, fps: number }) => {
 
 export const IntroComposition = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width } = useVideoConfig();
 
   // Global Fade Out
   const opacity = interpolate(
@@ -157,7 +159,7 @@ export const IntroComposition = () => {
         className="flex items-center justify-center z-10"
         style={{ opacity }}
       >
-        <LogoText frame={frame} fps={fps} />
+        <LogoText frame={frame} fps={fps} width={width} />
         
         {/* Cinematic Curtain */}
         <div 
