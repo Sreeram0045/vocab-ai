@@ -1,38 +1,80 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { auth } from "@/auth";
 
-const huggingface = createOpenAI({
-    baseURL: "https://router.huggingface.co/v1",
-    apiKey: process.env.HF_TOKEN
+// --- 1. CONFIGURATION & CHECKS ---
+
+// Check API Keys immediately on server startup (or request)
+if (!process.env.OPEN_ROUTER_TOKEN) {
+    console.error("❌ CRITICAL ERROR: OPEN_ROUTER_TOKEN is missing from .env");
+}
+if (!process.env.GEMINI_API_KEY) {
+    console.error("❌ CRITICAL ERROR: GEMINI_API_KEY is missing from .env");
+}
+
+const openRouter = createOpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: process.env.OPEN_ROUTER_TOKEN
 });
 
+// Initialize Gemini Client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+// --- 2. SHARED SCHEMA (Moved outside to prevent scope errors) ---
+const vocabSchema = z.object({
+    meaning: z.string(),
+    universe: z.string(),
+    visual_prompt: z.string(),
+    synonyms: z.array(z.string()),
+    antonyms: z.array(z.string()),
+    conversation: z.array(z.string()),
+    context: z.string().optional()
+});
+
+// --- 3. HELPER FUNCTION ---
+function processResponse(rawText: string, provider: string) {
+    try {
+        let cleanText = rawText.trim();
+        // Remove markdown code blocks if present
+        cleanText = cleanText.replace(/```json/g, "").replace(/```/g, "").trim();
+
+        const rawData = JSON.parse(cleanText);
+        // Validate against the Zod schema
+        const validatedData = vocabSchema.parse(rawData);
+
+        console.log(`✅ Success via ${provider}`);
+        return Response.json(validatedData);
+    } catch (error: any) {
+        console.error(`❌ JSON Parsing failed for ${provider}. Raw Text:`, rawText);
+        throw new Error(`JSON Parsing failed: ${error.message}`);
+    }
+}
+
+// --- 4. MAIN ROUTE HANDLER ---
 export async function POST(req: Request) {
+    // Auth Check
     const session = await auth();
     if (!session || !session.user) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Input Validation
     const { word, preferredShows } = await req.json();
+    if (!word) {
+        return Response.json({ error: "Word is required" }, { status: 400 });
+    }
 
-    const vocabSchema = z.object({
-        meaning: z.string(),
-        universe: z.string(),
-        visual_prompt: z.string(),
-        synonyms: z.array(z.string()),
-        antonyms: z.array(z.string()),
-        conversation: z.array(z.string()),
-        context: z.string().optional()
-    });
-
+    // --- PROMPT CONSTRUCTION ---
+    // (Prompt preserved exactly as requested)
     let universeInstruction = "";
     if (preferredShows && preferredShows.length > 0) {
         universeInstruction = `
         CRITICAL: The user strictly prefers these shows: ${preferredShows.join(", ")}.
         1. FIRST, check if the word "${word}" fits the "vibe" of any show in this list. 
         2. IF YES, you MUST use that show.
-        3. ONLY if the word makes absolutely no sense in those universes (e.g., a wizard spell in 'Suits'), fall back to a generic popular sitcom.
+        3. ONLY if the word makes absolutely no sense in those universes (e.g., a wizard spell in 'Suits'),choose a sitcom where the word suits.
         `;
     } else {
         universeInstruction = `
@@ -55,7 +97,7 @@ export async function POST(req: Request) {
     YOUR GOAL:
     1. Define the user's word accurately. If misspelled, return { "meaning": "Spelling error" }.
     2. ${universeInstruction}
-    3. Generate a SHORT, FUNNY dialogue using the word strictly in character.
+    3. Generate a SHORT, FUNNY dialogue using the WORD. The usage of the word should match the context and its usage should make sense.
     4. VISUAL PROMPT: Describe a PHYSICAL SCENE for an image generator. 
        - describing the characters doing an action that represents the word.
        - DO NOT use abstract words. Be visual (e.g., "Joey eating a giant pizza").
@@ -83,33 +125,55 @@ export async function POST(req: Request) {
     `;
 
     try {
+        console.log("Attempting Primary API: OpenRouter...");
+
+        // Ensure API Key exists before calling
+        if (!process.env.OPEN_ROUTER_TOKEN) {
+            throw new Error("OpenRouter API Key is missing. Skipping to fallback.");
+        }
+
         const { text } = await generateText({
-            model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+            // SUGGESTION: This model is often available for free and is very smart (Flash 2.0)
+            // You can revert to "arcee-ai/trinity-large-preview:free" if you prefer.
+            model: openRouter("arcee-ai/trinity-large-preview:free"),
             system: systemPrompt,
             prompt: `Teach me the word: "${word}"`,
-            temperature: 0.8,
+            temperature: 0.7,
         });
-        console.log(text);
-        let cleanText = text.trim();
-        // Remove markdown blocks if present
-        if (cleanText.startsWith("```json")) cleanText = cleanText.replace(/^```json/, "").replace(/```$/, "");
-        if (cleanText.startsWith("```")) cleanText = cleanText.replace(/^```/, "").replace(/```$/, "");
 
-        // 5. Parse & Validate
-        const rawData = JSON.parse(cleanText);
-        const validatedData = vocabSchema.parse(rawData);
+        return processResponse(text, "OpenRouter");
 
-        return Response.json(validatedData);
-    } catch (error: unknown) {
-        let errorMessage = "Unknown error";
-        if (error instanceof Error) errorMessage = error.message;
+    } catch (primaryError: any) {
+        console.warn("⚠️ OpenRouter Failed. Switching to Gemini Fallback.", primaryError.message);
 
-        console.error("🔥 Error:", errorMessage);
+        try {
+            // Ensure Fallback Key exists
+            if (!process.env.GEMINI_API_KEY) {
+                throw new Error("Gemini API Key is missing. Cannot use fallback.");
+            }
 
-        // Fallback: If AI fails, return a safe error to frontend
-        return Response.json({
-            error: "AI got confused. Try searching again!",
-            details: errorMessage
-        }, { status: 500 });
+            // ATTEMPT 2: Gemini (Fallback)
+            const model = genAI.getGenerativeModel({
+                model: "gemini-flash-latest",
+                generationConfig: { responseMimeType: "application/json" }
+            });
+
+            const result = await model.generateContent(
+                systemPrompt + `\n\nUSER REQUEST: Generate JSON for word: "${word}"`
+            );
+            const text = result.response.text();
+
+            return processResponse(text, "Gemini Fallback");
+
+        } catch (secondaryError: any) {
+            console.error("❌ CRITICAL: Both models failed.", secondaryError);
+            return Response.json(
+                {
+                    error: "System overloaded. Please try again later.",
+                    details: secondaryError.message
+                },
+                { status: 500 }
+            );
+        }
     }
 }
