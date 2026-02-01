@@ -28,6 +28,7 @@ import {
 
 import WordCard from "./word-card";
 import PreferencesModal from "@/components/preferences-modal";
+import ReviewSession from "./review-session";
 import { handleSignOut } from "@/app/actions";
 
 interface VocabData {
@@ -247,53 +248,53 @@ export default function VocabClient({ user }: VocabClientProps) {
 
           {/* Profile Dropdown */}
           {user ? (
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                   <Button 
-                     variant="ghost" 
-                     className="relative h-10 w-10 rounded-full p-0 overflow-hidden border border-white/10 hover:border-white/50 transition-all cursor-pointer bg-zinc-900"
-                   >
-                      {user.image ? (
-                         <Image
-                            src={user.image}
-                            alt={user.name || "User"}
-                            fill
-                            className="object-cover"
-                         />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-10 w-10 rounded-full p-0 overflow-hidden border border-white/10 hover:border-white/50 transition-all cursor-pointer bg-zinc-900"
+                >
+                  {user.image ? (
+                    <Image
+                      src={user.image}
+                      alt={user.name || "User"}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-emerald-500/10 text-emerald-500">
+                      {user.name ? (
+                        <span className="text-sm font-bold">{user.name[0].toUpperCase()}</span>
                       ) : (
-                         <div className="h-full w-full flex items-center justify-center bg-emerald-500/10 text-emerald-500">
-                            {user.name ? (
-                                <span className="text-sm font-bold">{user.name[0].toUpperCase()}</span>
-                            ) : (
-                                <User className="h-5 w-5" />
-                            )}
-                         </div>
+                        <User className="h-5 w-5" />
                       )}
-                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-zinc-950 border-zinc-800 text-zinc-200" align="end" forceMount>
-                   <DropdownMenuLabel className="font-normal p-3">
-                      <div className="flex flex-col space-y-1">
-                         <p className="text-sm font-medium leading-none text-white">{user.name}</p>
-                         <p className="text-xs leading-none text-zinc-500 truncate">{user.email}</p>
-                      </div>
-                   </DropdownMenuLabel>
-                   <DropdownMenuSeparator className="bg-zinc-800" />
-                   <DropdownMenuItem onClick={() => setShowPreferences(true)} className="cursor-pointer focus:bg-zinc-900 focus:text-white p-2.5">
-                      <Settings2 className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-white" />
-                      <span>Personalize</span>
-                   </DropdownMenuItem>
-                   <DropdownMenuSeparator className="bg-zinc-800" />
-                   <DropdownMenuItem onClick={() => handleSignOut()} className="cursor-pointer text-red-400 focus:text-red-300 focus:bg-red-950/20 p-2.5">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Sign out</span>
-                   </DropdownMenuItem>
-                </DropdownMenuContent>
-             </DropdownMenu>
+                    </div>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 bg-zinc-950 border-zinc-800 text-zinc-200" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal p-3">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none text-white">{user.name}</p>
+                    <p className="text-xs leading-none text-zinc-500 truncate">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-zinc-800" />
+                <DropdownMenuItem onClick={() => setShowPreferences(true)} className="cursor-pointer focus:bg-zinc-900 focus:text-white p-2.5">
+                  <Settings2 className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-white" />
+                  <span>Personalize</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-zinc-800" />
+                <DropdownMenuItem onClick={() => handleSignOut()} className="cursor-pointer text-red-400 focus:text-red-300 focus:bg-red-950/20 p-2.5">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-             <Link href="/api/auth/signin">
-                <Button variant="outline" size="sm" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white">Sign In</Button>
-             </Link>
+            <Link href="/api/auth/signin">
+              <Button variant="outline" size="sm" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white">Sign In</Button>
+            </Link>
           )}
         </div>
       </div>
@@ -316,58 +317,58 @@ export default function VocabClient({ user }: VocabClientProps) {
               Your creative workspace.
             </SheetDescription>
           </SheetHeader>
-          
+
           <div className="flex flex-col gap-6 mt-2">
-            
+
             {/* Primary Action: Go to Dashboard */}
             <Link href="/notes" className="group relative flex items-center justify-between p-6 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-emerald-500/60 hover:from-emerald-900/20 hover:to-black transition-all duration-500 overflow-hidden cursor-pointer">
-                <div className="relative z-10">
-                   <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">Enter Room</h3>
-                   <p className="text-xs text-zinc-400 mt-1">View all {notesList.length} notes</p>
-                </div>
-                <div className="relative z-10 p-3 rounded-full bg-white/5 group-hover:bg-emerald-500/20 group-hover:text-emerald-400 transition-all text-white/50">
-                    <ArrowRight size={20} />
-                </div>
-                {/* Glow */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">Enter Room</h3>
+                <p className="text-xs text-zinc-400 mt-1">View all {notesList.length} notes</p>
+              </div>
+              <div className="relative z-10 p-3 rounded-full bg-white/5 group-hover:bg-emerald-500/20 group-hover:text-emerald-400 transition-all text-white/50">
+                <ArrowRight size={20} />
+              </div>
+              {/* Glow */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
             </Link>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
-                 <h3 className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Quick Drafts</h3>
-                 <Button 
-                   variant="ghost" 
-                   size="sm" 
-                   onClick={handleCreateNote} 
-                   className="h-8 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 -mr-2 cursor-pointer"
-                 >
-                   <Plus className="w-3 h-3 mr-1.5" /> New Note
-                 </Button>
+                <h3 className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Quick Drafts</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCreateNote}
+                  className="h-8 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 -mr-2 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3 mr-1.5" /> New Note
+                </Button>
               </div>
 
               {notesList.length === 0 ? (
                 <div className="p-8 border border-dashed border-white/10 rounded-2xl text-center">
-                    <p className="text-zinc-600 italic text-sm mb-4">No notes yet.</p>
-                    <Button variant="secondary" size="sm" onClick={handleCreateNote} className="cursor-pointer">Create First Note</Button>
+                  <p className="text-zinc-600 italic text-sm mb-4">No notes yet.</p>
+                  <Button variant="secondary" size="sm" onClick={handleCreateNote} className="cursor-pointer">Create First Note</Button>
                 </div>
               ) : (
                 <div className="space-y-2">
-                {notesList.slice(0, 5).map((note) => (
-                  <Link 
-                    key={note._id} 
-                    href={`/notes/${note._id}`}
-                    className="block p-4 rounded-xl bg-black/20 border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all group cursor-pointer"
-                  >
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-medium text-zinc-300 group-hover:text-white transition-colors truncate pr-4 text-sm">
-                        {note.title || "Untitled Note"}
-                      </h4>
-                    </div>
-                    <p className="text-[10px] text-zinc-600 mt-2 font-mono uppercase tracking-wider">
-                      {new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </p>
-                  </Link>
-                ))}
+                  {notesList.slice(0, 5).map((note) => (
+                    <Link
+                      key={note._id}
+                      href={`/notes/${note._id}`}
+                      className="block p-4 rounded-xl bg-black/20 border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all group cursor-pointer"
+                    >
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-medium text-zinc-300 group-hover:text-white transition-colors truncate pr-4 text-sm">
+                          {note.title || "Untitled Note"}
+                        </h4>
+                      </div>
+                      <p className="text-[10px] text-zinc-600 mt-2 font-mono uppercase tracking-wider">
+                        {new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </p>
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>
@@ -375,6 +376,8 @@ export default function VocabClient({ user }: VocabClientProps) {
           </div>
         </SheetContent>
       </Sheet>
+
+      <ReviewSession />
 
       <div className="text-center space-y-4">
         <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide opacity-0 animate-fade-in-up">
