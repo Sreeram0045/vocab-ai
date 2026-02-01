@@ -34,6 +34,17 @@ const WordHistorySchema = new Schema(
     context: {
       type: String,
     },
+    srsStage: {
+      type: Number,
+      default: 0
+    },
+    nextReviewDate: {
+      type: Date,
+      default: Date.now // Default to "Now" so they appear immediately
+    },
+    lastReviewedAt: {
+      type: Date
+    },
   },
   {
     timestamps: true,
