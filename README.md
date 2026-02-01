@@ -34,7 +34,8 @@ VocabulAI is an interactive, premium educational application that transforms voc
 *   MongoDB Atlas Account (or local MongoDB)
 *   Cloudinary Account
 *   Google Cloud Console Project (for OAuth)
-*   Hugging Face API Token
+*   Gemini API Key
+*   Openrouter API Key
 
 ### Installation
 
@@ -55,6 +56,8 @@ VocabulAI is an interactive, premium educational application that transforms voc
     ```env
     # AI Providers
     HF_TOKEN=your_hugging_face_token
+    GEMINI_API_KEY=your_gemini_api_key
+    OPEN_ROUTER_TOKEN=your_openrouter_api_key
 
     # Database
     MONGODB_URI=your_mongodb_connection_string
