@@ -22,8 +22,8 @@ VocabulAI is an interactive, premium educational application that transforms voc
 *   **Image Storage:** Cloudinary
 *   **UI Components:** Shadcn/UI (Radix Primitives) + Lucide React Icons
 *   **Editor:** TipTap
-*   **AI Models (via Hugging Face):**
-    *   **Text:** `meta-llama/Llama-3.1-8B-Instruct`
+*   **AI Models (via Openrouter, AI Studio, Hugging Face):**
+    *   **Text:** `arcee-ai/trinity-large-preview:free` or `gemini-flash-latest`
     *   **Image:** `black-forest-labs/FLUX.1-schnell`
 
 ## 🚀 Getting Started
@@ -34,6 +34,7 @@ VocabulAI is an interactive, premium educational application that transforms voc
 *   MongoDB Atlas Account (or local MongoDB)
 *   Cloudinary Account
 *   Google Cloud Console Project (for OAuth)
+*   Huggingface API Key/Token
 *   Gemini API Key
 *   Openrouter API Key
 
