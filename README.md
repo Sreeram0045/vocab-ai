@@ -75,9 +75,73 @@ VocabulAI is an interactive, premium educational application that transforms voc
     npm run dev
     ```
 
-5.  Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+
+
+## 🧩 Browser Extension
+
+
+
+Bring VocabulAI to any website. Select a word while reading and get a cinematic definition instantly.
+
+
+
+### ✨ Extension Features
+
+
+
+*   **Instant Lookup:** Highlight text and get a definition without leaving your page.
+
+*   **Keyboard Shortcut:** Press `Option + Shift + E` (Mac) or `Alt + Shift + E` (Windows) to trigger the modal.
+
+*   **Context Menu:** Right-click any selection and choose **"Ask VocabulAI"**.
+
+*   **Seamless Sync:** Automatically shares your website session and saves words to your personal history.
+
+
+
+### 🛠️ How to Install (Developer Mode)
+
+
+
+1.  **Build the extension:**
+
+    ```bash
+
+    cd extension
+
+    npm install
+
+    npm run build
+
+    ```
+
+
+
+2.  **Load into Chrome:**
+
+    *   Open Chrome and navigate to `chrome://extensions`.
+
+    *   Enable **Developer mode** (top-right toggle).
+
+    *   Click **"Load unpacked"**.
+
+    *   Select the `extension/build/chrome-mv3-prod` folder.
+
+
+
+3.  **Configure Shortcut (Optional):**
+
+    *   Go to `chrome://extensions/shortcuts`.
+
+    *   Find **VocabulAI** and ensure the shortcut is set to `Option + Shift + E`.
+
+
 
 ## 🎨 Design System
+
+
 
 VocabulAI features a custom **"Obsidian & Platinum"** theme:
 
