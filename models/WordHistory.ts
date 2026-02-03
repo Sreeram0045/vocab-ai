@@ -34,13 +34,14 @@ const WordHistorySchema = new Schema(
     context: {
       type: String,
     },
+    phonetics: { type: String },
+    isLearning: { type: Boolean, default: false },
     srsStage: {
       type: Number,
       default: 0
     },
     nextReviewDate: {
       type: Date,
-      default: Date.now // Default to "Now" so they appear immediately
     },
     lastReviewedAt: {
       type: Date
