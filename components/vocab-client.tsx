@@ -377,8 +377,6 @@ export default function VocabClient({ user }: VocabClientProps) {
         </SheetContent>
       </Sheet>
 
-      <ReviewSession />
-
       <div className="text-center space-y-4">
         <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide opacity-0 animate-fade-in-up">
           Master vocabulary through the lens of cinema.
@@ -443,6 +441,8 @@ export default function VocabClient({ user }: VocabClientProps) {
         onSave={handlePreferencesSaved}
         onClose={() => setShowPreferences(false)}
       />
+
+      <ReviewSession />
     </div>
   );
 }
