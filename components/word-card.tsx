@@ -197,7 +197,7 @@
 
 "use client";
 
-import { Check, X, Tv, Sparkles, Volume2, GraduationCap, CheckCircle, Loader2 } from "lucide-react"; // Added Icons
+import { Plus, Minus, Tv, Sparkles, Volume2, Brain, BrainCircuit, Loader2 } from "lucide-react"; // Updated Icons
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"; // Added Button
 import { useEffect, useState } from "react";
@@ -286,23 +286,23 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
             size={compact ? "icon" : "sm"}
             onClick={handleToggleLearning}
             disabled={isToggling}
-            className={`rounded-full transition-all border shadow-xl backdrop-blur-md group ${
+            className={`rounded-full transition-all duration-500 border backdrop-blur-md group cursor-pointer ${
               compact ? 'gap-0 hover:w-32 hover:px-4 hover:gap-2' : ''
             } ${isLearning
-              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 hover:bg-emerald-500/30"
-              : "bg-black/40 text-zinc-400 border-white/10 hover:text-white hover:bg-black/60"
+              ? "bg-cyan-950/40 text-cyan-300 border-cyan-500/30 hover:bg-cyan-900/60 shadow-[0_0_20px_-5px_rgba(34,211,238,0.4)]"
+              : "bg-zinc-900/40 text-zinc-400 border-white/10 hover:text-white hover:bg-zinc-800/60 hover:border-white/20"
               }`}
           >
             {isLearning ? (
               <>
-                <CheckCircle className={`w-4 h-4 shrink-0 ${!compact ? 'mr-1.5' : ''}`} />
+                <BrainCircuit className={`w-4 h-4 shrink-0 ${!compact ? 'mr-1.5' : ''} animate-pulse`} />
                 <span className={`overflow-hidden transition-all duration-300 ${compact ? 'max-w-0 group-hover:max-w-24' : ''}`}>
                   Learning
                 </span>
               </>
             ) : (
               <>
-                <GraduationCap className={`w-4 h-4 shrink-0 ${!compact ? 'mr-1.5' : ''}`} />
+                <Brain className={`w-4 h-4 shrink-0 ${!compact ? 'mr-1.5' : ''}`} />
                 <span className={`overflow-hidden transition-all duration-300 ${compact ? 'max-w-0 group-hover:max-w-24' : ''}`}>
                   Memorize
                 </span>
@@ -354,29 +354,28 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
               {data.meaning}
             </p>
 
-            {/* ... (Meta Grid, Synonyms, Antonyms - Keep Existing Code) ... */}
+            {/* Meta Data Grid */}
             <div className={`grid gap-8 pt-8 border-t border-white/30 mt-8 ${compact ? 'grid-cols-2 gap-4 pt-4 mt-4' : 'grid-cols-2'}`}>
-              {/* ... Paste your existing synonyms/antonyms code here ... */}
               <div>
-                <h4 className={`${compact ? 'text-[10px]' : 'text-xs'} text-emerald-400/60 font-bold uppercase tracking-[0.2em] mb-4 flex items-center gap-2`}>
-                  <Check size={compact ? 12 : 14} /> Synonyms
+                <h4 className={`${compact ? 'text-[10px]' : 'text-xs'} text-cyan-400/80 font-bold uppercase tracking-[0.2em] mb-4 flex items-center gap-2 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]`}>
+                  <Plus size={compact ? 12 : 14} /> Synonyms
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {data.synonyms?.map(syn => (
-                    <span key={syn} className={`flex items-center px-2 py-1 rounded-md bg-emerald-500/5 border border-emerald-500/10 text-emerald-400/80 hover:text-emerald-300 hover:border-emerald-500/30 transition-all cursor-default ${compact ? 'text-xs' : 'text-sm'}`}>
-                      <Check className="w-3 h-3 mr-1.5 opacity-50" /> {syn}
+                    <span key={syn} className={`flex items-center px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-500/20 text-cyan-200 shadow-[0_0_15px_-3px_rgba(34,211,238,0.15)] hover:bg-cyan-900/40 hover:border-cyan-400/30 hover:shadow-[0_0_20px_-5px_rgba(34,211,238,0.3)] transition-all duration-300 cursor-default ${compact ? 'text-xs' : 'text-sm'}`}>
+                      {syn}
                     </span>
                   )) || <span className="text-white/20">None</span>}
                 </div>
               </div>
               <div>
-                <h4 className={`${compact ? 'text-[10px]' : 'text-xs'} text-rose-400/60 font-bold uppercase tracking-[0.2em] mb-4 flex items-center gap-2`}>
-                  <X size={compact ? 12 : 14} /> Antonyms
+                <h4 className={`${compact ? 'text-[10px]' : 'text-xs'} text-amber-400/80 font-bold uppercase tracking-[0.2em] mb-4 flex items-center gap-2 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]`}>
+                  <Minus size={compact ? 12 : 14} /> Antonyms
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {data.antonyms?.map(ant => (
-                    <span key={ant} className={`flex items-center px-2 py-1 rounded-md bg-rose-500/5 border border-rose-500/10 text-rose-400/80 hover:text-rose-300 hover:border-rose-500/30 transition-all cursor-default ${compact ? 'text-xs' : 'text-sm'}`}>
-                      <X className="w-3 h-3 mr-1.5 opacity-50" /> {ant}
+                    <span key={ant} className={`flex items-center px-3 py-1 rounded-full bg-amber-950/30 border border-amber-500/20 text-amber-200 shadow-[0_0_15px_-3px_rgba(245,158,11,0.15)] hover:bg-amber-900/40 hover:border-amber-400/30 hover:shadow-[0_0_20px_-5px_rgba(245,158,11,0.3)] transition-all duration-300 cursor-default ${compact ? 'text-xs' : 'text-sm'}`}>
+                      {ant}
                     </span>
                   )) || <span className="text-white/20">None</span>}
                 </div>
