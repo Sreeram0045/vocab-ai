@@ -326,7 +326,7 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
 
               {/* --- PHONETICS (Conditionally Rendered) --- */}
               {/* Only show if data.phonetics is defined AND not an empty string */}
-              {data.phonetics && data.phonetics.trim() !== "" && (
+              {data.phonetics && data.phonetics.trim().length > 0 && (
                 <span className="text-zinc-500 font-mono text-lg mb-4 block tracking-wide">
                   {data.phonetics}
                 </span>
