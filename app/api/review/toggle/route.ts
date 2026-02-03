@@ -15,19 +15,17 @@ export async function POST(req: Request) {
 
     if (!word) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Toggle the status
+    // 1. Toggle the status
     word.isLearning = !word.isLearning;
 
     if (word.isLearning) {
         const nextDate = new Date();
 
         // --- SMART TIMING LOGIC ---
-        // If running locally (npm run dev), review in 1 minute.
-        // If running live (Production), review in 24 hours.
         const isDev = process.env.NODE_ENV === "development";
 
         if (isDev) {
-            console.log("⚠️ DEV MODE: Scheduling review for 1 minute from now.");
+            // console.log("⚠️ DEV MODE: Scheduling review for 1 minute from now.");
             nextDate.setMinutes(nextDate.getMinutes() + 1);
         } else {
             nextDate.setDate(nextDate.getDate() + 1); // 24 Hours
@@ -40,6 +38,23 @@ export async function POST(req: Request) {
     }
 
     await word.save();
+
+    // ---------------------------------------------------------
+    // 🔍 DEBUG: PRINT ALL WORDS CURRENTLY BEING LEARNED
+    // ---------------------------------------------------------
+    const allLearningWords = await WordHistory.find({
+        userId: session.user.id,
+        isLearning: true
+    }).select("word");
+
+    const wordList = allLearningWords.map(w => w.word);
+
+    console.log("\n========================================");
+    console.log(`🎓 User: ${session.user.name || session.user.email}`);
+    console.log(`📝 Action: ${word.isLearning ? "Added" : "Removed"} '${word.word}'`);
+    console.log("📚 CURRENT STUDY LIST:", wordList);
+    console.log("========================================\n");
+    // ---------------------------------------------------------
 
     return NextResponse.json({ success: true, isLearning: word.isLearning });
 }
