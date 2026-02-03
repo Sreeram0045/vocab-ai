@@ -240,7 +240,33 @@ export default function VocabClient({ user }: VocabClientProps) {
 
       // 3. Update the screen with text IMMEDIATELY
       const resultWithPhonetics = { ...textData, word: currentSearchWord, phonetics: phoneticText };
-      setResult(resultWithPhonetics);
+      
+      // --- SAVE EARLY (Text Only) ---
+      let savedId = null;
+      let savedIsLearning = false;
+
+      try {
+        console.log("💾 Saving text early...");
+        const saveRes = await fetch("/api/history/save", {
+            method: "POST",
+            body: JSON.stringify(resultWithPhonetics),
+        });
+        if (saveRes.ok) {
+            const savedData = await saveRes.json();
+            savedId = savedData._id;
+            savedIsLearning = savedData.isLearning;
+            console.log("✅ Saved Early. ID:", savedId);
+        } else {
+            console.error("❌ Early save failed. Status:", saveRes.status);
+        }
+      } catch (err) { console.error("❌ Early save exception", err); }
+
+      // Update state (Button enabled immediately)
+      setResult({
+        ...resultWithPhonetics,
+        _id: savedId,
+        isLearning: savedIsLearning
+      });
       setLoadingText(false);
       setInputWord("");
 
@@ -249,6 +275,7 @@ export default function VocabClient({ user }: VocabClientProps) {
       let imageUrl = null;
 
       try {
+        console.log("🎨 Requesting Image...");
         const imgRes = await fetch("/api/image", {
           method: "POST",
           body: JSON.stringify({
@@ -261,34 +288,35 @@ export default function VocabClient({ user }: VocabClientProps) {
         if (imgRes.ok) {
           const imgData = await imgRes.json();
           imageUrl = imgData.image || imgData.url;
+          console.log("🖼️ Image Received:", imageUrl);
+        } else {
+            console.error("❌ Image API Error:", imgRes.status);
         }
       } catch (e) {
-        console.warn("Image generation skipped/failed", e);
+        console.warn("⚠️ Image generation skipped/failed", e);
       } finally {
         setLoadingImage(false);
       }
 
-      // 5. SAVE TO HISTORY (With Image + Phonetics)
-      // Update local state first if image exists
+      // 5. UPDATE WITH IMAGE
       if (imageUrl) {
-        setResult((prev) => prev ? { ...prev, imageUrl } : null);
+        // Update Local State
+        setResult((prev) => {
+            console.log("🔄 Updating Local State with Image");
+            return prev ? { ...prev, imageUrl } : null;
+        });
+
+        // Update DB (if we have an ID)
+        if (savedId) {
+            console.log("💾 Patching DB with Image for ID:", savedId);
+            await fetch("/api/history/update", {
+                method: "POST",
+                body: JSON.stringify({ _id: savedId, imageUrl }),
+            });
+        } else {
+            console.warn("⚠️ Cannot patch DB: No savedId available");
+        }
       }
-
-      const fullResult = { ...resultWithPhonetics, imageUrl };
-
-      const saveRes = await fetch("/api/history/save", {
-        method: "POST",
-        body: JSON.stringify(fullResult),
-      });
-
-      const savedData = await saveRes.json();
-
-      // Update state with the DB ID (needed for Memorize button)
-      setResult({
-        ...fullResult,
-        _id: savedData._id,
-        isLearning: savedData.isLearning
-      });
 
     } catch (err: unknown) {
       if (err instanceof Error) {

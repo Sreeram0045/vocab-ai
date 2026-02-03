@@ -283,21 +283,29 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
       {data._id && (
         <div className="absolute top-4 right-4 z-50">
           <Button
-            size="sm"
+            size={compact ? "icon" : "sm"}
             onClick={handleToggleLearning}
             disabled={isToggling}
-            className={`rounded-full transition-all border shadow-xl backdrop-blur-md ${isLearning
+            className={`rounded-full transition-all border shadow-xl backdrop-blur-md group ${
+              compact ? 'gap-0 hover:w-32 hover:px-4 hover:gap-2' : ''
+            } ${isLearning
               ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 hover:bg-emerald-500/30"
               : "bg-black/40 text-zinc-400 border-white/10 hover:text-white hover:bg-black/60"
               }`}
           >
             {isLearning ? (
               <>
-                <CheckCircle className="w-4 h-4 mr-1.5" /> Learning
+                <CheckCircle className={`w-4 h-4 shrink-0 ${!compact ? 'mr-1.5' : ''}`} />
+                <span className={`overflow-hidden transition-all duration-300 ${compact ? 'max-w-0 group-hover:max-w-24' : ''}`}>
+                  Learning
+                </span>
               </>
             ) : (
               <>
-                <GraduationCap className="w-4 h-4 mr-1.5" /> Memorize
+                <GraduationCap className={`w-4 h-4 shrink-0 ${!compact ? 'mr-1.5' : ''}`} />
+                <span className={`overflow-hidden transition-all duration-300 ${compact ? 'max-w-0 group-hover:max-w-24' : ''}`}>
+                  Memorize
+                </span>
               </>
             )}
           </Button>

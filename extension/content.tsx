@@ -30,6 +30,8 @@ interface VocabData {
   conversation: string[];
   context?: string;
   imageUrl?: string;
+  phonetics?: string;
+  isLearning?: boolean;
 }
 
 export default function VocabOverlay() {
@@ -60,28 +62,58 @@ export default function VocabOverlay() {
     setData(null)
 
     try {
-      // 1. Check History
-      const historyRes = await api.get(`/api/history/check?word=${encodeURIComponent(searchWord)}`)
+      // 1. Check History (Use /api/word/get for "Lazy Patching" of phonetics)
+      const historyRes = await api.post("/api/word/get", { word: searchWord })
+      
       if (historyRes.ok) {
         const historyData = await historyRes.json()
         if (historyData) {
-          // Ensure word is set, even if DB record is weird
-          setData({ ...historyData, word: historyData.word || searchWord })
+          setData(historyData)
           setLoading(false)
           return
         }
       }
 
-      // 2. Generate Text
-      const textRes = await api.post("/api/generate", { word: searchWord })
+      // 2. Generate Text + Fetch Phonetics (Parallel)
+      const textPromise = api.post("/api/generate", { word: searchWord })
+      const dictPromise = fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${searchWord}`)
+
+      const [textRes, dictRes] = await Promise.all([textPromise, dictPromise])
+
       if (!textRes.ok) {
         if (textRes.status === 401) throw new Error("Please log in to VocabAI")
         throw new Error("Failed to generate definition")
       }
       const textData = await textRes.json()
+
+      // Extract Phonetics
+      let phoneticText = ""
+      try {
+        if (dictRes.ok) {
+          const dictData = await dictRes.json()
+          phoneticText = dictData[0]?.phonetic || dictData[0]?.phonetics?.find((p: any) => p.text)?.text || ""
+        }
+      } catch (e) { console.warn("No phonetics found") }
       
-      const fullData = { ...textData, word: searchWord }
-      setData(fullData)
+      const fullData = { 
+        ...textData, 
+        word: searchWord,
+        phonetics: phoneticText
+      }
+      
+      // --- SAVE EARLY (Text Only) ---
+      let savedId = null;
+      let savedIsLearning = false;
+
+      const saveRes = await api.post("/api/history/save", fullData)
+      if (saveRes.ok) {
+          const savedRecord = await saveRes.json()
+          savedId = savedRecord._id;
+          savedIsLearning = savedRecord.isLearning;
+      }
+
+      // Update State (Button enabled immediately)
+      setData({ ...fullData, _id: savedId, isLearning: savedIsLearning })
       setLoading(false)
 
       // 3. Generate Image (Background)
@@ -93,11 +125,16 @@ export default function VocabOverlay() {
       const imgData = await imgRes.json()
 
       if (imgData.image) {
-        const dataWithImage = { ...fullData, imageUrl: imgData.image }
-        setData(dataWithImage)
+        // Update Local State with Image
+        setData(prev => prev ? ({ ...prev, imageUrl: imgData.image }) : null)
         
-        // 4. Save
-        await api.post("/api/history/save", dataWithImage)
+        // 4. Update DB with Image (if we have an ID)
+        if (savedId) {
+            await api.post("/api/history/update", {
+                _id: savedId,
+                imageUrl: imgData.image
+            })
+        }
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong")
