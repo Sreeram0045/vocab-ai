@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Sparkles, AlertCircle, ArrowRight, Book, Plus, History, LogOut, Tv, User, Settings2 } from "lucide-react";
+import { Search, Sparkles, AlertCircle, ArrowRight, Book, Plus, History, LogOut, Tv, User, Settings2, Clock, Lightbulb } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import WordCard from "./word-card";
 import PreferencesModal from "@/components/preferences-modal";
 import ReviewSession from "./review-session";
 import { handleSignOut } from "@/app/actions";
+import { COMMON_VOCAB } from "@/lib/common-vocab";
 
 interface VocabData {
   _id?: string;
@@ -60,6 +62,12 @@ export default function VocabClient({ user }: VocabClientProps) {
   const [loadingImage, setLoadingImage] = useState(false);
   const [error, setError] = useState("");
 
+  // Suggestions State
+  const [historyWords, setHistoryWords] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
   // Journal State
   const [notesList, setNotesList] = useState<any[]>([]);
 
@@ -68,6 +76,40 @@ export default function VocabClient({ user }: VocabClientProps) {
   const [userEmail, setUserEmail] = useState("");
   const [userShows, setUserShows] = useState<string[]>([]);
   // ---------------------------------
+
+  // Filtered Suggestions Logic
+  const suggestions = useMemo(() => {
+    if (!inputWord.trim() || inputWord.length < 2) return [];
+
+    const lowerInput = inputWord.toLowerCase().trim();
+    
+    // 1. Filter History
+    const historyMatches = historyWords
+      .filter(w => w.toLowerCase().includes(lowerInput) && w.toLowerCase() !== lowerInput)
+      .slice(0, 3)
+      .map(word => ({ word, type: 'history' as const }));
+
+    // 2. Filter Common Vocab (exclude if already in history matches)
+    const historySet = new Set(historyMatches.map(h => h.word.toLowerCase()));
+    
+    const vocabMatches = COMMON_VOCAB
+      .filter(w => w.toLowerCase().startsWith(lowerInput) && !historySet.has(w.toLowerCase()) && w.toLowerCase() !== lowerInput)
+      .slice(0, 5)
+      .map(word => ({ word, type: 'vocab' as const }));
+
+    return [...historyMatches, ...vocabMatches];
+  }, [inputWord, historyWords]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Fetch initial data
   useEffect(() => {
@@ -89,8 +131,10 @@ export default function VocabClient({ user }: VocabClientProps) {
         }
 
         if (historyRes.ok) {
-          // const historyData = await historyRes.json();
-          // Logic for history if needed
+           const historyData = await historyRes.json();
+           if (Array.isArray(historyData)) {
+             setHistoryWords(historyData);
+           }
         }
 
         // --- NEW LOGIC: Check User Preferences ---
@@ -138,10 +182,18 @@ export default function VocabClient({ user }: VocabClientProps) {
   };
 
   // --- THE BRAIN: Handles the Search Logic ---
-  async function handleSearch() {
-    if (!inputWord.trim()) return;
+  async function handleSearch(wordOverride?: string) {
+    const term = wordOverride || inputWord;
+    if (!term.trim()) return;
 
-    const currentSearchWord = inputWord.trim();
+    // Close suggestions
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+    
+    // Update input if it was an override
+    if (wordOverride) setInputWord(wordOverride);
+
+    const currentSearchWord = term.trim();
 
     // 1. Reset everything
     setLoadingText(true);
@@ -384,7 +436,10 @@ export default function VocabClient({ user }: VocabClientProps) {
       </div>
 
       {/* --- REDESIGNED SEARCH BAR: The "Obsidian Dock" --- */}
-      <div className="relative max-w-lg mx-auto w-full group z-50 opacity-0 animate-fade-in-up delay-200">
+      <div 
+        ref={searchContainerRef}
+        className="relative max-w-lg mx-auto w-full group z-50 opacity-0 animate-fade-in-up delay-200"
+      >
         {/* Glow Effect behind */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
 
@@ -394,11 +449,32 @@ export default function VocabClient({ user }: VocabClientProps) {
             placeholder="Type a word..."
             className="flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-lg h-12 font-light tracking-wide rounded-full"
             value={inputWord}
-            onChange={(e) => setInputWord(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            onChange={(e) => {
+              setInputWord(e.target.value);
+              setShowSuggestions(true);
+              setSelectedIndex(-1);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+                  handleSearch(suggestions[selectedIndex].word);
+                } else {
+                  handleSearch();
+                }
+              } else if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev > -1 ? prev - 1 : -1));
+              } else if (e.key === "Escape") {
+                setShowSuggestions(false);
+              }
+            }}
           />
           <Button
-            onClick={handleSearch}
+            onClick={() => handleSearch()}
             disabled={loadingText || !inputWord.trim()}
             size="icon"
             className="h-12 w-12 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
@@ -406,6 +482,66 @@ export default function VocabClient({ user }: VocabClientProps) {
             {loadingText ? <Sparkles className="animate-spin text-black" size={20} /> : <ArrowRight size={24} />}
           </Button>
         </div>
+
+        {/* --- SUGGESTIONS DROPDOWN: The Obsidian Portal --- */}
+        <AnimatePresence>
+          {showSuggestions && suggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -4, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.99 }}
+              transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
+              className="absolute top-full left-0 right-0 mt-2 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] z-40 ring-1 ring-white/5"
+            >
+              <div className="py-1.5 flex flex-col">
+                {suggestions.map((suggestion, index) => {
+                  const isActive = index === selectedIndex;
+                  return (
+                    <button
+                      key={`${suggestion.type}-${suggestion.word}`}
+                      onClick={() => handleSearch(suggestion.word)}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`
+                        relative w-full text-left px-5 py-3 flex items-center justify-between transition-all duration-300 cursor-pointer group
+                        ${isActive ? "bg-white/[0.08]" : "hover:bg-white/[0.03]"}
+                      `}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`
+                          transition-all duration-300
+                          ${isActive ? "text-white scale-110" : "text-zinc-600"}
+                        `}>
+                          {suggestion.type === 'history' ? (
+                            <Clock className="w-3.5 h-3.5" />
+                          ) : (
+                            <Lightbulb className="w-3.5 h-3.5" />
+                          )}
+                        </div>
+                        <span className={`
+                          text-sm tracking-tight transition-all duration-300
+                          ${isActive ? "text-white font-medium [text-shadow:0_0_20px_rgba(255,255,255,0.3)]" : "text-zinc-400 font-light"}
+                        `}>
+                          {suggestion.word}
+                        </span>
+                      </div>
+                      
+                      {isActive && (
+                        <motion.div
+                          layoutId="arrow"
+                          initial={{ opacity: 0, x: -5 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="text-white/40"
+                        >
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </motion.div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ERROR MESSAGE */}
