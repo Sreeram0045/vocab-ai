@@ -16,6 +16,7 @@ export async function GET(req: Request) {
     // 2. Query using 'userId' (Matches your MongoDB data)
     const dueWords = await History.find({
         userId: session.user.id, // <--- CHANGED FROM userEmail to userId
+        isLearning: true,
         nextReviewDate: { $lte: new Date() } // "Is the due date in the past?"
     }).limit(10);
 

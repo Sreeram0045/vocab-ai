@@ -33,6 +33,7 @@ import ReviewSession from "./review-session";
 import { handleSignOut } from "@/app/actions";
 import { COMMON_VOCAB } from "@/lib/common-vocab";
 
+// --- UPDATED INTERFACE ---
 interface VocabData {
   _id?: string;
   word: string;
@@ -44,6 +45,8 @@ interface VocabData {
   conversation: string[];
   context?: string;
   imageUrl?: string;
+  phonetics?: string; // Added
+  isLearning?: boolean; // Added
 }
 
 interface VocabClientProps {
@@ -71,27 +74,24 @@ export default function VocabClient({ user }: VocabClientProps) {
   // Journal State
   const [notesList, setNotesList] = useState<any[]>([]);
 
-  // --- NEW STATE FOR PREFERENCES ---
+  // Preferences State
   const [showPreferences, setShowPreferences] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userShows, setUserShows] = useState<string[]>([]);
-  // ---------------------------------
 
   // Filtered Suggestions Logic
   const suggestions = useMemo(() => {
     if (!inputWord.trim() || inputWord.length < 2) return [];
 
     const lowerInput = inputWord.toLowerCase().trim();
-    
-    // 1. Filter History
+
     const historyMatches = historyWords
       .filter(w => w.toLowerCase().includes(lowerInput) && w.toLowerCase() !== lowerInput)
       .slice(0, 3)
       .map(word => ({ word, type: 'history' as const }));
 
-    // 2. Filter Common Vocab (exclude if already in history matches)
     const historySet = new Set(historyMatches.map(h => h.word.toLowerCase()));
-    
+
     const vocabMatches = COMMON_VOCAB
       .filter(w => w.toLowerCase().startsWith(lowerInput) && !historySet.has(w.toLowerCase()) && w.toLowerCase() !== lowerInput)
       .slice(0, 5)
@@ -115,42 +115,32 @@ export default function VocabClient({ user }: VocabClientProps) {
   useEffect(() => {
     async function fetchData() {
       try {
-        // We add the fetch for user data here
         const [noteRes, historyRes, userRes] = await Promise.all([
           fetch("/api/notes"),
           fetch("/api/history/list"),
-          fetch("/api/user/me") // Checks who the user is
+          fetch("/api/user/me")
         ]);
 
         if (noteRes.ok) {
           const notesData = await noteRes.json();
-          // Ensure we have an array
-          if (Array.isArray(notesData)) {
-            setNotesList(notesData);
-          }
+          if (Array.isArray(notesData)) setNotesList(notesData);
         }
 
         if (historyRes.ok) {
-           const historyData = await historyRes.json();
-           if (Array.isArray(historyData)) {
-             setHistoryWords(historyData);
-           }
+          const historyData = await historyRes.json();
+          if (Array.isArray(historyData)) setHistoryWords(historyData);
         }
 
-        // --- NEW LOGIC: Check User Preferences ---
         if (userRes.ok) {
           const userData = await userRes.json();
           setUserEmail(userData.email);
 
-          // LOGIC: If they have shows, load them.
-          // If they DON'T have shows, force open the onboarding modal.
           if (userData.preferences?.watchedShows?.length > 0) {
             setUserShows(userData.preferences.watchedShows);
           } else {
             setShowPreferences(true);
           }
         }
-        // -----------------------------------------
 
       } catch (err) {
         console.error("Failed to fetch initial data", err);
@@ -159,7 +149,6 @@ export default function VocabClient({ user }: VocabClientProps) {
     fetchData();
   }, []);
 
-  // --- NEW HANDLER: Create a new note and navigate ---
   const handleCreateNote = async () => {
     try {
       const res = await fetch("/api/notes", {
@@ -175,22 +164,19 @@ export default function VocabClient({ user }: VocabClientProps) {
     }
   };
 
-  // --- NEW HANDLER: Called when the modal successfully saves ---
   const handlePreferencesSaved = (shows: string[]) => {
     setUserShows(shows);
     setShowPreferences(false);
   };
 
-  // --- THE BRAIN: Handles the Search Logic ---
+  // --- THE BRAIN: Handles the Search Logic (UPDATED) ---
   async function handleSearch(wordOverride?: string) {
     const term = wordOverride || inputWord;
     if (!term.trim()) return;
 
-    // Close suggestions
     setShowSuggestions(false);
     setSelectedIndex(-1);
-    
-    // Update input if it was an override
+
     if (wordOverride) setInputWord(wordOverride);
 
     const currentSearchWord = term.trim();
@@ -202,68 +188,107 @@ export default function VocabClient({ user }: VocabClientProps) {
     setResult(null);
 
     try {
-      console.log("Checking history for:", currentSearchWord);
-      // --- STEP 0: Check History (Cache) ---
-      const historyRes = await fetch(`/api/history/check?word=${encodeURIComponent(currentSearchWord)}`);
-      if (historyRes.ok) {
-        const historyData = await historyRes.json();
-        console.log("History check result:", historyData);
-        if (historyData) {
-          // CACHE HIT! Use saved data
-          console.log("Cache HIT! Using saved data.");
-          setResult(historyData);
-          setInputWord("");
-          setLoadingText(false);
-          setLoadingImage(false);
-          return; // STOP HERE
-        }
-      }
-      console.log("Cache MISS. Generating new content...");
+      // --- STEP 1: CHECK DATABASE FIRST (Cache Hit) ---
+      // We use the new /api/word/get endpoint which handles "Lazy Patching" of phonetics
+      console.log("Checking database for:", currentSearchWord);
+      const checkRes = await fetch("/api/word/get", {
+        method: "POST",
+        body: JSON.stringify({ word: currentSearchWord }),
+      });
 
-      // --- STEP 1: CACHE MISS - Generate Content ---
-      // 2. Fetch TEXT (The Definition)
-      // UPDATED: We now pass the user's preferred shows to the AI
-      const textRes = await fetch("/api/generate", {
+      if (checkRes.ok) {
+        console.log("⚡ Cache Hit: Loaded from Database");
+        const cachedData = await checkRes.json();
+        setResult(cachedData);
+        setLoadingText(false);
+        return; // STOP HERE
+      }
+
+      // --- STEP 2: CACHE MISS - GENERATE NEW (LLM + Dictionary) ---
+      console.log("💨 Cache Miss: Generating Fresh Content");
+
+      // A. Parallel Fetch: LLM (Text) + Dictionary (Phonetics)
+      const textPromise = fetch("/api/generate", {
         method: "POST",
         body: JSON.stringify({
           word: currentSearchWord,
-          preferredShows: userShows // <--- PASSING THE VIBE
+          preferredShows: userShows
         }),
       });
+
+      // Fetch Phonetics in parallel
+      const dictionaryPromise = fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${currentSearchWord}`);
+
+      const [textRes, dictRes] = await Promise.all([textPromise, dictionaryPromise]);
+
+      if (!textRes.ok) {
+        const textData = await textRes.json();
+        throw new Error(textData.error || "Failed to fetch definition");
+      }
 
       const textData = await textRes.json();
 
-      if (!textRes.ok) throw new Error(textData.error || "Failed to fetch definition");
+      // B. Process Phonetics
+      let phoneticText = "";
+      try {
+        if (dictRes.ok) {
+          const dictData = await dictRes.json();
+          // Extract logic
+          phoneticText = dictData[0]?.phonetic || dictData[0]?.phonetics?.find((p: any) => p.text)?.text || "";
+        }
+      } catch (err) { console.error("Dictionary parsing error", err); }
 
       // 3. Update the screen with text IMMEDIATELY
-      setResult({ ...textData, word: currentSearchWord });
+      const resultWithPhonetics = { ...textData, word: currentSearchWord, phonetics: phoneticText };
+      setResult(resultWithPhonetics);
       setLoadingText(false);
-      setInputWord(""); // Clear input after successful search
+      setInputWord("");
 
       // 4. Fetch IMAGE (Background Process)
       setLoadingImage(true);
+      let imageUrl = null;
 
-      const imgRes = await fetch("/api/image", {
+      try {
+        const imgRes = await fetch("/api/image", {
+          method: "POST",
+          body: JSON.stringify({
+            prompt: textData.visual_prompt,
+            universe: textData.universe
+          }),
+          signal: AbortSignal.timeout(20000) // Safety timeout
+        });
+
+        if (imgRes.ok) {
+          const imgData = await imgRes.json();
+          imageUrl = imgData.image || imgData.url;
+        }
+      } catch (e) {
+        console.warn("Image generation skipped/failed", e);
+      } finally {
+        setLoadingImage(false);
+      }
+
+      // 5. SAVE TO HISTORY (With Image + Phonetics)
+      // Update local state first if image exists
+      if (imageUrl) {
+        setResult((prev) => prev ? { ...prev, imageUrl } : null);
+      }
+
+      const fullResult = { ...resultWithPhonetics, imageUrl };
+
+      const saveRes = await fetch("/api/history/save", {
         method: "POST",
-        body: JSON.stringify({
-          prompt: textData.visual_prompt,
-          universe: textData.universe
-        }),
+        body: JSON.stringify(fullResult),
       });
 
-      const imgData = await imgRes.json();
+      const savedData = await saveRes.json();
 
-      if (imgData.image) {
-        // Update local state with image
-        const fullResult = { ...textData, word: currentSearchWord, imageUrl: imgData.image };
-        setResult((prev) => prev ? { ...prev, imageUrl: imgData.image } : null);
-
-        // --- STEP 5: SAVE TO HISTORY ---
-        await fetch("/api/history/save", {
-          method: "POST",
-          body: JSON.stringify(fullResult),
-        });
-      }
+      // Update state with the DB ID (needed for Memorize button)
+      setResult({
+        ...fullResult,
+        _id: savedData._id,
+        isLearning: savedData.isLearning
+      });
 
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -271,13 +296,12 @@ export default function VocabClient({ user }: VocabClientProps) {
       } else {
         setError("Something went wrong");
       }
-    } finally {
       setLoadingText(false);
       setLoadingImage(false);
     }
   }
 
-  // --- THE UI: What the user sees ---
+  // --- THE UI ---
   return (
     <div className="max-w-5xl w-full p-6 md:p-12 space-y-16 relative">
 
@@ -429,16 +453,14 @@ export default function VocabClient({ user }: VocabClientProps) {
         </SheetContent>
       </Sheet>
 
-      <ReviewSession />
-
       <div className="text-center space-y-4">
         <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide opacity-0 animate-fade-in-up">
           Master vocabulary through the lens of cinema.
         </p>
       </div>
 
-      {/* --- REDESIGNED SEARCH BAR: The "Obsidian Dock" --- */}
-      <div 
+      {/* --- SEARCH BAR --- */}
+      <div
         ref={searchContainerRef}
         className="relative max-w-lg mx-auto w-full group z-50 opacity-0 animate-fade-in-up delay-200"
       >
@@ -485,7 +507,7 @@ export default function VocabClient({ user }: VocabClientProps) {
           </Button>
         </div>
 
-        {/* --- SUGGESTIONS DROPDOWN: The Obsidian Portal --- */}
+        {/* --- SUGGESTIONS DROPDOWN --- */}
         <AnimatePresence>
           {showSuggestions && suggestions.length > 0 && (
             <motion.div
@@ -526,7 +548,7 @@ export default function VocabClient({ user }: VocabClientProps) {
                           {suggestion.word}
                         </span>
                       </div>
-                      
+
                       {isActive && (
                         <motion.div
                           layoutId="arrow"
@@ -571,7 +593,7 @@ export default function VocabClient({ user }: VocabClientProps) {
         <WordCard data={result} loadingImage={loadingImage} ImageComponent={Image} />
       )}
 
-      {/* --- NEW: THE PREFERENCES MODAL --- */}
+      {/* --- PREFERENCES MODAL --- */}
       <PreferencesModal
         isOpen={showPreferences}
         initialShows={userShows}
@@ -579,6 +601,9 @@ export default function VocabClient({ user }: VocabClientProps) {
         onSave={handlePreferencesSaved}
         onClose={() => setShowPreferences(false)}
       />
+
+      {/* --- REVIEW SESSION (Kept at bottom as requested) --- */}
+      <ReviewSession />
     </div>
   );
 }

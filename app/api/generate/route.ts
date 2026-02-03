@@ -131,11 +131,11 @@ export async function POST(req: Request) {
         if (!process.env.OPEN_ROUTER_TOKEN) {
             throw new Error("OpenRouter API Key is missing. Skipping to fallback.");
         }
-
+        // openRouter("arcee-ai/trinity-large-preview:free")
         const { text } = await generateText({
             // SUGGESTION: This model is often available for free and is very smart (Flash 2.0)
             // You can revert to "arcee-ai/trinity-large-preview:free" if you prefer.
-            model: openRouter("arcee-ai/trinity-large-preview:free"),
+            model: openRouter("stepfun/step-3.5-flash:free"),
             system: systemPrompt,
             prompt: `Teach me the word: "${word}"`,
             temperature: 0.7,
