@@ -630,8 +630,8 @@ export default function VocabClient({ user }: VocabClientProps) {
         onClose={() => setShowPreferences(false)}
       />
 
-      {/* --- REVIEW SESSION (Kept at bottom as requested) --- */}
-      <ReviewSession />
+      {/* --- REVIEW SESSION (Only on Initial Screen) --- */}
+      {!result && !loadingText && <ReviewSession />}
     </div>
   );
 }
