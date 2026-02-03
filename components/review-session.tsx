@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { BrainCircuit, Check, X, Eye, Trophy, ChevronDown, Play, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { BrainCircuit, Check, X, Eye, Trophy, ChevronDown, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, LayoutGroup } from "framer-motion";
 
 interface ReviewItem {
     _id: string;
@@ -17,18 +16,36 @@ export default function ReviewSession() {
     const [dueWords, setDueWords] = useState<ReviewItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRevealed, setIsRevealed] = useState(false);
-
-    // --- NEW STATE: EXPANSION ---
     const [isExpanded, setIsExpanded] = useState(false);
-
-    // Track total for the progress bar
+    const [isPinned, setIsPinned] = useState(false); // New state to track "Sticky" mode
     const [totalSessionCount, setTotalSessionCount] = useState(0);
     const [isSessionComplete, setIsSessionComplete] = useState(false);
+    const [isVisible, setIsVisible] = useState(true);
+    
+    // Hover timer ref
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const reviewContainerRef = useRef<HTMLDivElement>(null);
 
     const currentWord = dueWords[0];
     const progress = totalSessionCount > 0
         ? ((totalSessionCount - dueWords.length) / totalSessionCount) * 100
         : 0;
+
+    // Handle click outside to close
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (reviewContainerRef.current && !reviewContainerRef.current.contains(event.target as Node) && isExpanded) {
+                setIsExpanded(false);
+                setIsPinned(false); // Reset pin state
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isExpanded]);
 
     useEffect(() => {
         async function fetchReviews() {
@@ -48,18 +65,8 @@ export default function ReviewSession() {
         fetchReviews();
     }, []);
 
-    // Sound effect
-    // useEffect(() => {
-    //     if (isSessionComplete) {
-    //         const audio = new Audio("/success.mp3");
-    //         audio.volume = 0.5;
-    //         audio.play().catch((e) => console.log("Audio play blocked", e));
-    //     }
-    // }, [isSessionComplete]);
-
     const handleVote = async (result: 'remembered' | 'forgot') => {
         if (!currentWord) return;
-
         const wordId = currentWord._id;
 
         try {
@@ -67,16 +74,24 @@ export default function ReviewSession() {
                 method: "POST",
                 body: JSON.stringify({ wordId, result })
             });
-        } catch (err) {
-            console.error("Failed to update review", err);
-        }
+        } catch (err) { console.error("Failed to update review", err); }
 
         if (dueWords.length === 1) {
+            // 1. Enter Victory Mode immediately
             setIsSessionComplete(true);
+            setIsExpanded(true);
+            setIsPinned(true);
+
+            // 2. Wait 3 seconds, then shrink to "Done" pill
             setTimeout(() => {
-                setDueWords([]);
-                setIsSessionComplete(false);
-                setIsExpanded(false); // Reset expansion state
+                setDueWords([]); 
+                setIsExpanded(false);
+                setIsPinned(false);
+
+                // 3. After another 3 seconds, fade out completely
+                setTimeout(() => {
+                    setIsVisible(false);
+                }, 3000);
             }, 3000);
         } else {
             setDueWords((prev) => prev.slice(1));
@@ -84,180 +99,254 @@ export default function ReviewSession() {
         }
     };
 
+    const handleMouseEnter = () => {
+        if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+            closeTimeoutRef.current = null;
+        }
+        if (!isExpanded && !isSessionComplete && !isPinned) {
+            hoverTimeoutRef.current = setTimeout(() => {
+                setIsExpanded(true);
+            }, 100);
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+        }
+        if (isExpanded && !isPinned) {
+            closeTimeoutRef.current = setTimeout(() => {
+                setIsExpanded(false);
+            }, 500);
+        }
+    };
+
+    const handleContainerClick = () => {
+        setIsExpanded(true);
+        setIsPinned(true);
+    };
+
     if (isLoading) return null;
+    // Render if we have words OR if the session is complete (to show the "Done" pill)
     if (dueWords.length === 0 && !isSessionComplete) return null;
+    if (!isVisible) return null;
 
     return (
-        <div className="w-full max-w-2xl mx-auto my-8 relative z-40">
-            <AnimatePresence mode="wait">
-
-                {/* 1. TROPHY VIEW (Celebration) */}
-                {isSessionComplete ? (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full flex justify-center pointer-events-none">
+            <AnimatePresence>
+                {isVisible && (
                     <motion.div
-                        key="trophy"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="animate-in zoom-in-95 duration-500"
-                    >
-                        <Card className="bg-gradient-to-br from-emerald-900/20 to-black border border-emerald-500/30 p-8 text-center backdrop-blur-xl">
-                            <div className="flex flex-col items-center gap-4">
-                                <motion.div
-                                    initial={{ scale: 0, rotate: -180 }}
-                                    animate={{ scale: 1, rotate: 0 }}
-                                    transition={{ type: "spring", bounce: 0.5 }}
-                                    className="p-4 rounded-full bg-emerald-500/10 text-emerald-400 mb-2"
-                                >
-                                    <Trophy size={48} />
-                                </motion.div>
-                                <h3 className="text-2xl font-black text-white">Session Complete!</h3>
-                                <div className="w-full h-1 bg-emerald-900/30 rounded-full mt-2 overflow-hidden max-w-xs mx-auto">
-                                    <div className="h-full bg-emerald-500 w-full animate-[shimmer_2s_infinite]" />
-                                </div>
-                            </div>
-                        </Card>
-                    </motion.div>
-
-                ) : !isExpanded ? (
-
-                    /* 2. MINIMIZED PILL VIEW (The "Notification") */
-                    <motion.div
-                        key="minimized"
-                        layoutId="review-card"
+                        ref={reviewContainerRef}
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setIsExpanded(true)}
-                        className="cursor-pointer group"
+                        animate={{ 
+                            opacity: 1,
+                            y: 0,
+                            borderRadius: isExpanded ? 24 : 28,
+                            width: isExpanded ? "min(400px, 92vw)" : 220,
+                            height: isExpanded ? 520 : 56,
+                            borderColor: isExpanded ? "rgba(63, 63, 70, 1)" : "rgba(255, 255, 255, 0.2)",
+                            boxShadow: isExpanded 
+                                ? "0 0 40px rgba(0, 0, 0, 0.5)" 
+                                : "0 0 25px rgba(255, 255, 255, 0.15)"
+                        }}
+                        exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.4 } }}
+                        className={`pointer-events-auto bg-zinc-950 border overflow-hidden relative flex flex-col cursor-pointer will-change-transform
+                            ${isExpanded ? 'cursor-default' : 'hover:bg-white/[0.03]'}`}
+                        onClick={handleContainerClick}
+                        onMouseEnter={handleMouseEnter}
+                        onMouseLeave={handleMouseLeave}
+                        whileHover={!isExpanded ? {
+                            boxShadow: "0 0 35px rgba(255, 255, 255, 0.2)",
+                            borderColor: "rgba(255, 255, 255, 0.4)"
+                        } : {}}
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     >
-                        <div className="bg-zinc-900/80 border border-emerald-500/30 hover:border-emerald-500/60 backdrop-blur-md p-4 rounded-2xl flex items-center justify-between shadow-lg hover:shadow-emerald-500/10 transition-all duration-300">
-                            <div className="flex items-center gap-4">
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-emerald-500 blur-md opacity-20 animate-pulse" />
-                                    <div className="bg-emerald-500/10 p-2.5 rounded-xl text-emerald-400 relative border border-emerald-500/20">
-                                        <BrainCircuit size={20} />
-                                    </div>
-                                    {/* Notification Badge */}
-                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black" />
-                                </div>
-                                <div className="text-left">
-                                    <h4 className="text-white font-bold text-sm tracking-wide">Daily Review Ready</h4>
-                                    <p className="text-zinc-400 text-xs mt-0.5">
-                                        <span className="text-emerald-400 font-mono font-medium">{dueWords.length}</span> words pending from your history
-                                    </p>
-                                </div>
+                        {/* 1. COMPACT "DONE" PILL */}
+                        <motion.div 
+                            className="absolute bottom-0 left-0 right-0 h-[56px] flex items-center justify-center gap-3 px-6 whitespace-nowrap pointer-events-none"
+                            animate={{ opacity: (!isExpanded && isSessionComplete) ? 1 : 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <div className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+                                <Check size={12} strokeWidth={3} />
                             </div>
+                            <span className="text-sm font-medium text-zinc-400 tracking-tight">Session Finished</span>
+                        </motion.div>
 
-                            <Button size="sm" className="bg-white/5 hover:bg-white/10 text-white rounded-full px-4 border border-white/5 group-hover:border-emerald-500/30 transition-all">
-                                <Play size={14} className="mr-2 fill-current" /> Start
-                            </Button>
-                        </div>
-                    </motion.div>
+                        {/* 2. COMPACT "REVIEW" PILL */}
+                        <motion.div 
+                            className="absolute bottom-0 left-0 right-0 h-[56px] flex items-center justify-center gap-4 px-6 whitespace-nowrap pointer-events-none"
+                            animate={{ opacity: (!isExpanded && !isSessionComplete) ? 1 : 0 }}
+                            transition={{ duration: 0.1 }}
+                        >
+                            <div className="relative flex items-center justify-center">
+                                <BrainCircuit size={18} className="text-zinc-400" />
+                                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+                            </div>
+                            <span className="text-sm font-medium text-zinc-300">Daily Review</span>
+                            <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+                            <span className="text-xs font-mono font-bold text-zinc-200">{dueWords.length}</span>
+                        </motion.div>
 
-                ) : (
-
-                    /* 3. EXPANDED FLASHCARD VIEW */
-                    <motion.div
-                        key="expanded"
-                        layoutId="review-card"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
-                    >
-                        <div className="relative group">
-                            {/* Meta Header */}
-                            <div className="flex items-center justify-between mb-4 px-2">
-                                <div className="flex items-center gap-2 text-emerald-400">
-                                    <BrainCircuit size={18} />
-                                    <span className="font-mono text-xs uppercase tracking-widest font-bold">Neural Recall</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <span className="text-xs font-mono text-zinc-500">
-                                        {totalSessionCount - dueWords.length + 1} / {totalSessionCount}
-                                    </span>
-                                    {/* Minimize Button */}
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
-                                        className="text-zinc-500 hover:text-white transition-colors"
+                        {/* 3. EXPANDED CARD CONTENT */}
+                        <motion.div
+                            className="absolute inset-0 flex flex-col w-full h-full"
+                            animate={{ 
+                                opacity: isExpanded ? 1 : 0,
+                                pointerEvents: isExpanded ? "auto" : "none"
+                            }}
+                            transition={{ duration: 0.2, delay: isExpanded ? 0.1 : 0 }}
+                        >
+                            {isSessionComplete ? (
+                                <div className="flex flex-col items-center justify-center h-full space-y-8 p-12 text-center relative">
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_0%,transparent_70%)]" />
+                                    
+                                    <motion.div
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ type: "spring", stiffness: 100, delay: 0.2 }}
+                                        className="relative"
                                     >
-                                        <ChevronDown size={18} />
+                                        <div className="absolute inset-0 blur-3xl bg-white/10 rounded-full scale-150" />
+                                        <div className="relative inline-flex p-8 rounded-full bg-gradient-to-b from-zinc-800 to-zinc-900 border border-zinc-700/50 text-zinc-100 shadow-2xl">
+                                            <Trophy size={56} strokeWidth={1.5} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                                        </div>
+                                    </motion.div>
+
+                                    <div className="space-y-3 relative z-10">
+                                        <h3 className="text-3xl font-light text-white tracking-tighter italic">
+                                            Session Complete
+                                        </h3>
+                                        <p className="text-zinc-500 text-sm font-light max-w-[240px] leading-relaxed mx-auto">
+                                            Your linguistic neural paths have been successfully reinforced.
+                                        </p>
+                                    </div>
+
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsExpanded(false);
+                                            setIsPinned(false);
+                                        }}
+                                        className="px-8 py-2 rounded-full border border-zinc-800 bg-transparent text-zinc-500 text-xs font-medium tracking-widest uppercase hover:border-zinc-600 hover:text-zinc-200 transition-all duration-300 cursor-pointer relative z-10"
+                                    >
+                                        Dismiss
                                     </button>
                                 </div>
-                            </div>
-
-                            <Card className="bg-black/80 border border-emerald-500/20 overflow-hidden relative backdrop-blur-xl shadow-2xl min-h-[400px] flex flex-col justify-between">
-
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-
-                                <div className="p-8 md:p-10 text-center space-y-8 relative z-10 flex-1 flex flex-col justify-center">
-
-                                    {/* THE WORD */}
-                                    <div className="space-y-3">
-                                        {currentWord.universe && (
-                                            <span className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] text-zinc-400 uppercase tracking-widest mb-2">
-                                                From: {currentWord.universe}
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-between p-5 border-b border-zinc-900 shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <Brain size={16} className="text-zinc-500" />
+                                            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 font-bold">Neural Link</span>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-xs font-mono text-zinc-600">
+                                                {totalSessionCount - dueWords.length + 1} / {totalSessionCount}
                                             </span>
-                                        )}
-                                        <h3 className="text-4xl md:text-5xl font-black text-white tracking-tight drop-shadow-lg">
-                                            {currentWord.word}
-                                        </h3>
+                                            <button 
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    setIsExpanded(false); 
+                                                    setIsPinned(false);
+                                                }}
+                                                className="text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                                            >
+                                                <ChevronDown size={18} />
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    {/* REVEAL AREA */}
-                                    <div className="min-h-[120px] flex items-center justify-center">
-                                        {isRevealed ? (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
-                                                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                                                className="space-y-6 w-full"
-                                            >
-                                                <div className="bg-white/5 rounded-2xl p-6 border border-white/10 shadow-inner">
-                                                    <p className="text-zinc-200 text-lg font-light leading-relaxed">
-                                                        "{currentWord.meaning}"
-                                                    </p>
-                                                </div>
+                                    <div className="p-8 text-center flex-1 flex flex-col justify-center relative overflow-y-auto">
+                                        <LayoutGroup>
+                                            <div className="relative z-10 space-y-10">
+                                                <motion.div 
+                                                    layout
+                                                    transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                                                    className="space-y-3"
+                                                >
+                                                    <h3 className="text-4xl font-black text-white tracking-tight">
+                                                        {currentWord.word}
+                                                    </h3>
+                                                    {currentWord.universe && (
+                                                        <p className="text-xs font-mono text-zinc-600 uppercase tracking-widest">
+                                                            {currentWord.universe}
+                                                        </p>
+                                                    )}
+                                                </motion.div>
 
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <Button
-                                                        onClick={() => handleVote('forgot')}
-                                                        variant="ghost"
-                                                        className="h-14 border border-rose-500/20 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 hover:border-rose-500/50 transition-all rounded-xl"
-                                                    >
-                                                        <X className="mr-2 h-5 w-5" /> Forgot
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => handleVote('remembered')}
-                                                        className="h-14 bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all rounded-xl border-none"
-                                                    >
-                                                        <Check className="mr-2 h-5 w-5" /> I Remembered
-                                                    </Button>
+                                                <div className="min-h-[120px] flex items-center justify-center">
+                                                    <AnimatePresence>
+                                                        {!isRevealed ? (
+                                                            <motion.div
+                                                                key="reveal-btn"
+                                                                layout
+                                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                                animate={{ opacity: 1, scale: 1 }}
+                                                                exit={{ opacity: 0, scale: 0.95, position: "absolute" }}
+                                                                transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                                                            >
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    onClick={(e) => { e.stopPropagation(); setIsRevealed(true); }}
+                                                                    className="h-12 px-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-300 backdrop-blur-md cursor-pointer"
+                                                                >
+                                                                    <Eye size={16} className="mr-2 opacity-70" />
+                                                                    <span className="tracking-wide font-light">Reveal Definition</span>
+                                                                </Button>
+                                                            </motion.div>
+                                                        ) : (
+                                                            <motion.div
+                                                                key="definition"
+                                                                layout
+                                                                initial={{ opacity: 0, y: 20 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                className="space-y-8 w-full"
+                                                                transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                                                            >
+                                                                <div className="p-6 rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                                                                    <p className="text-white/90 font-light leading-relaxed text-xl drop-shadow-sm">
+                                                                        {currentWord.meaning}
+                                                                    </p>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleVote('forgot'); }}
+                                                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-amber-500/10 hover:border-amber-500/20 hover:text-amber-200 text-zinc-500 transition-all duration-300 cursor-pointer group"
+                                                                    >
+                                                                        <X size={20} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                                                                        <span className="text-[10px] font-medium uppercase tracking-widest opacity-70 group-hover:opacity-100">Forgot</span>
+                                                                    </button>
+                                                                    
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleVote('remembered'); }}
+                                                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-200 text-zinc-500 transition-all duration-300 cursor-pointer group"
+                                                                    >
+                                                                        <Check size={20} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                                                                        <span className="text-[10px] font-medium uppercase tracking-widest opacity-70 group-hover:opacity-100">Recall</span>
+                                                                    </button>
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                 </div>
-                                            </motion.div>
-                                        ) : (
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setIsRevealed(true)}
-                                                className="h-14 px-10 border-white/10 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all rounded-full group text-base"
-                                            >
-                                                <Eye size={20} className="mr-2 group-hover:text-emerald-400 transition-colors" />
-                                                Tap to Reveal
-                                            </Button>
-                                        )}
+                                            </div>
+                                        </LayoutGroup>
                                     </div>
-                                </div>
 
-                                {/* Progress Bar */}
-                                <div className="absolute bottom-0 left-0 h-1 bg-white/5 w-full">
-                                    <motion.div
-                                        className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${progress}%` }}
-                                        transition={{ duration: 0.5 }}
-                                    />
-                                </div>
-                            </Card>
-                        </div>
+                                    <div className="absolute bottom-0 left-0 w-full h-1 bg-zinc-900">
+                                        <motion.div 
+                                            className="h-full bg-emerald-600"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${progress}%` }}
+                                            transition={{ duration: 0.5 }}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -2,7 +2,7 @@ import cssText from "data-text:~/style.css"
 import type { PlasmoCSConfig } from "plasmo"
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Sparkles, Loader2, BookOpen, ExternalLink } from "lucide-react"
+import { X, Sparkles, Loader2, BookOpen, ExternalLink, SearchX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import WordCard from "@/components/word-card"
@@ -30,6 +30,8 @@ interface VocabData {
   conversation: string[];
   context?: string;
   imageUrl?: string;
+  phonetics?: string;
+  isLearning?: boolean;
 }
 
 export default function VocabOverlay() {
@@ -39,6 +41,15 @@ export default function VocabOverlay() {
   const [loadingImage, setLoadingImage] = useState(false)
   const [data, setData] = useState<VocabData | null>(null)
   const [error, setError] = useState("")
+
+  const inputValidation = (() => {
+    const trimmed = word.trim();
+    if (!trimmed) return { isValid: true, reason: "" };
+    const wordCount = trimmed.split(/\s+/).length;
+    if (trimmed.length > 50) return { isValid: false, reason: "Too many characters" };
+    if (wordCount > 4) return { isValid: false, reason: "Too many words" };
+    return { isValid: true, reason: "" };
+  })();
 
   useEffect(() => {
     const messageListener = (message: any) => {
@@ -54,54 +65,120 @@ export default function VocabOverlay() {
   }, [])
 
   const handleSearch = async (searchWord: string) => {
+    const trimmed = searchWord.trim();
+    const wordCount = trimmed.split(/\s+/).length;
+
+    // Prevent API calls if input is invalid, but let the banner handle the UI
+    if (trimmed.length > 50 || wordCount > 4) {
+      return;
+    }
+
     setLoading(true)
     setLoadingImage(false)
     setError("")
     setData(null)
 
     try {
-      // 1. Check History
-      const historyRes = await api.get(`/api/history/check?word=${encodeURIComponent(searchWord)}`)
+      // 1. Check History (Use /api/word/get for "Lazy Patching" of phonetics)
+      const historyRes = await api.post("/api/word/get", { word: searchWord })
+      
       if (historyRes.ok) {
         const historyData = await historyRes.json()
         if (historyData) {
-          // Ensure word is set, even if DB record is weird
-          setData({ ...historyData, word: historyData.word || searchWord })
+          setData(historyData)
           setLoading(false)
           return
         }
       }
 
-      // 2. Generate Text
-      const textRes = await api.post("/api/generate", { word: searchWord })
+      // 2. Generate Text + Fetch Phonetics (Parallel)
+      const textPromise = api.post("/api/generate", { word: searchWord })
+      const dictPromise = fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${searchWord}`)
+
+      const [textRes, dictRes] = await Promise.all([textPromise, dictPromise])
+
       if (!textRes.ok) {
         if (textRes.status === 401) throw new Error("Please log in to VocabAI")
         throw new Error("Failed to generate definition")
       }
       const textData = await textRes.json()
+
+      // --- CHECK FOR SPELLING ERROR ---
+      if (textData.meaning === "Spelling error") {
+        setData({ ...textData, word: searchWord });
+        setLoading(false);
+        return;
+      }
+
+      // Extract Phonetics
+      let phoneticText = ""
+      try {
+        if (dictRes.ok) {
+          const dictData = await dictRes.json()
+          phoneticText = dictData[0]?.phonetic || dictData[0]?.phonetics?.find((p: any) => p.text)?.text || ""
+        }
+      } catch (e) { console.warn("No phonetics found") }
       
-      const fullData = { ...textData, word: searchWord }
-      setData(fullData)
+      const fullData = { 
+        ...textData, 
+        word: searchWord,
+        phonetics: phoneticText
+      }
+      
+      // --- SAVE EARLY (Text Only) ---
+      let savedId = null;
+      let savedIsLearning = false;
+
+      try {
+        const saveRes = await api.post("/api/history/save", fullData)
+        if (saveRes.ok) {
+            const savedRecord = await saveRes.json()
+            savedId = savedRecord._id;
+            savedIsLearning = savedRecord.isLearning;
+            console.log("✅ Extension: Text saved early. ID:", savedId);
+        } else {
+            console.error("❌ Extension: Early save failed", saveRes.status);
+        }
+      } catch (err) {
+        console.error("❌ Extension: Save exception", err);
+      }
+
+      // Update State (Button enabled immediately)
+      setData({ ...fullData, _id: savedId, isLearning: savedIsLearning })
       setLoading(false)
 
       // 3. Generate Image (Background)
       setLoadingImage(true)
-      const imgRes = await api.post("/api/image", {
-        prompt: textData.visual_prompt,
-        universe: textData.universe
-      })
-      const imgData = await imgRes.json()
+      let imageUrl = null;
 
-      if (imgData.image) {
-        const dataWithImage = { ...fullData, imageUrl: imgData.image }
-        setData(dataWithImage)
+      try {
+        const imgRes = await api.post("/api/image", {
+            prompt: textData.visual_prompt,
+            universe: textData.universe
+        })
+        const imgData = await imgRes.json()
+        imageUrl = imgData.image || imgData.url;
+      } catch (e) {
+        console.warn("⚠️ Extension: Image generation failed", e)
+      } finally {
+        setLoadingImage(false)
+      }
+
+      if (imageUrl) {
+        // Update Local State with Image
+        setData(prev => prev ? ({ ...prev, imageUrl }) : null)
         
-        // 4. Save
-        await api.post("/api/history/save", dataWithImage)
+        // 4. Update DB with Image (if we have an ID)
+        if (savedId) {
+            console.log("💾 Extension: Patching DB with Image...");
+            await api.post("/api/history/update", {
+                _id: savedId,
+                imageUrl
+            })
+        }
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong")
-    } finally {
       setLoading(false)
       setLoadingImage(false)
     }
@@ -156,6 +233,17 @@ export default function VocabOverlay() {
                </Button>
             </div>
 
+            {/* Validation Error Banner (Industrial Style) */}
+            {!inputValidation.isValid && (
+              <div className="px-4 pt-4 pb-0 animate-in slide-in-from-top-2 fade-in duration-300">
+                <div className="w-full bg-zinc-900 border border-zinc-700 border-dashed rounded-lg p-3 flex items-center justify-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">
+                    System Limit: {inputValidation.reason}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="p-4">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -194,7 +282,33 @@ export default function VocabOverlay() {
                   </div>
                 )
               ) : data ? (
-                <WordCard data={data} loadingImage={loadingImage} compact={true} />
+                data.meaning === "Spelling error" ? (
+                  <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="inline-flex p-4 rounded-full bg-white/5 text-white ring-1 ring-white/10 shadow-[0_0_15px_-3px_rgba(255,255,255,0.1)]">
+                      <SearchX size={24} />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-black text-white tracking-tight uppercase">Script Error</h3>
+                      <p className="text-sm text-zinc-400 font-light leading-relaxed">
+                        No cinematic match for <br/>
+                        <span className="text-white font-medium border-b border-white/20 pb-0.5">&quot;{data.word}&quot;</span>
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setIsOpen(false);
+                        setData(null);
+                      }}
+                      className="w-full border-white/10 bg-white/5 hover:bg-white text-white hover:text-black transition-all duration-300 rounded-full h-9 text-xs uppercase tracking-wider"
+                    >
+                      Close Overlay
+                    </Button>
+                  </div>
+                ) : (
+                  <WordCard data={data} loadingImage={loadingImage} compact={true} />
+                )
               ) : null}
             </div>
 

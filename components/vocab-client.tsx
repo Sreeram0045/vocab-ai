@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Sparkles, AlertCircle, ArrowRight, Book, Plus, History, LogOut, Tv, User, Settings2, Clock, Lightbulb } from "lucide-react";
+import { Search, Sparkles, AlertCircle, ArrowRight, Book, Plus, History, LogOut, Tv, User, Settings2, Clock, Lightbulb, SearchX, Ban } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 // Shadcn UI Components
@@ -78,6 +78,18 @@ export default function VocabClient({ user }: VocabClientProps) {
   const [showPreferences, setShowPreferences] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userShows, setUserShows] = useState<string[]>([]);
+
+  // Validation Logic
+  const inputValidation = useMemo(() => {
+    const trimmed = inputWord.trim();
+    if (!trimmed) return { isValid: true, reason: "" };
+    
+    const wordCount = trimmed.split(/\s+/).length;
+    if (trimmed.length > 50) return { isValid: false, reason: "Too many characters" };
+    if (wordCount > 4) return { isValid: false, reason: "Too many words" };
+    
+    return { isValid: true, reason: "" };
+  }, [inputWord]);
 
   // Filtered Suggestions Logic
   const suggestions = useMemo(() => {
@@ -228,6 +240,14 @@ export default function VocabClient({ user }: VocabClientProps) {
 
       const textData = await textRes.json();
 
+      // --- CHECK FOR SPELLING ERROR ---
+      if (textData.meaning === "Spelling error") {
+        setResult({ ...textData, word: currentSearchWord });
+        setLoadingText(false);
+        setInputWord("");
+        return;
+      }
+
       // B. Process Phonetics
       let phoneticText = "";
       try {
@@ -240,7 +260,33 @@ export default function VocabClient({ user }: VocabClientProps) {
 
       // 3. Update the screen with text IMMEDIATELY
       const resultWithPhonetics = { ...textData, word: currentSearchWord, phonetics: phoneticText };
-      setResult(resultWithPhonetics);
+      
+      // --- SAVE EARLY (Text Only) ---
+      let savedId = null;
+      let savedIsLearning = false;
+
+      try {
+        console.log("💾 Saving text early...");
+        const saveRes = await fetch("/api/history/save", {
+            method: "POST",
+            body: JSON.stringify(resultWithPhonetics),
+        });
+        if (saveRes.ok) {
+            const savedData = await saveRes.json();
+            savedId = savedData._id;
+            savedIsLearning = savedData.isLearning;
+            console.log("✅ Saved Early. ID:", savedId);
+        } else {
+            console.error("❌ Early save failed. Status:", saveRes.status);
+        }
+      } catch (err) { console.error("❌ Early save exception", err); }
+
+      // Update state (Button enabled immediately)
+      setResult({
+        ...resultWithPhonetics,
+        _id: savedId,
+        isLearning: savedIsLearning
+      });
       setLoadingText(false);
       setInputWord("");
 
@@ -249,6 +295,7 @@ export default function VocabClient({ user }: VocabClientProps) {
       let imageUrl = null;
 
       try {
+        console.log("🎨 Requesting Image...");
         const imgRes = await fetch("/api/image", {
           method: "POST",
           body: JSON.stringify({
@@ -261,34 +308,35 @@ export default function VocabClient({ user }: VocabClientProps) {
         if (imgRes.ok) {
           const imgData = await imgRes.json();
           imageUrl = imgData.image || imgData.url;
+          console.log("🖼️ Image Received:", imageUrl);
+        } else {
+            console.error("❌ Image API Error:", imgRes.status);
         }
       } catch (e) {
-        console.warn("Image generation skipped/failed", e);
+        console.warn("⚠️ Image generation skipped/failed", e);
       } finally {
         setLoadingImage(false);
       }
 
-      // 5. SAVE TO HISTORY (With Image + Phonetics)
-      // Update local state first if image exists
+      // 5. UPDATE WITH IMAGE
       if (imageUrl) {
-        setResult((prev) => prev ? { ...prev, imageUrl } : null);
+        // Update Local State
+        setResult((prev) => {
+            console.log("🔄 Updating Local State with Image");
+            return prev ? { ...prev, imageUrl } : null;
+        });
+
+        // Update DB (if we have an ID)
+        if (savedId) {
+            console.log("💾 Patching DB with Image for ID:", savedId);
+            await fetch("/api/history/update", {
+                method: "POST",
+                body: JSON.stringify({ _id: savedId, imageUrl }),
+            });
+        } else {
+            console.warn("⚠️ Cannot patch DB: No savedId available");
+        }
       }
-
-      const fullResult = { ...resultWithPhonetics, imageUrl };
-
-      const saveRes = await fetch("/api/history/save", {
-        method: "POST",
-        body: JSON.stringify(fullResult),
-      });
-
-      const savedData = await saveRes.json();
-
-      // Update state with the DB ID (needed for Memorize button)
-      setResult({
-        ...fullResult,
-        _id: savedData._id,
-        isLearning: savedData.isLearning
-      });
 
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -303,10 +351,10 @@ export default function VocabClient({ user }: VocabClientProps) {
 
   // --- THE UI ---
   return (
-    <div className="max-w-5xl w-full p-6 md:p-12 space-y-16 relative">
+    <div className="max-w-5xl w-full p-4 md:p-12 space-y-12 md:space-y-16 relative">
 
       {/* --- STICKY NAVBAR --- */}
-      <div className="w-full flex justify-between items-center sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-black/40 p-4 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] mb-8">
+      <div className="w-full flex justify-between items-center sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-black/40 p-2 md:p-4 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] mb-8 md:mb-8">
         <a href="/" className="flex items-center gap-1 select-none pl-2 cursor-pointer hover:opacity-80 transition-opacity">
           <span className="text-xl font-black tracking-tighter text-white">
             Vocabul
@@ -381,7 +429,7 @@ export default function VocabClient({ user }: VocabClientProps) {
           <Button
             variant="outline"
             size="icon"
-            className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 opacity-0 animate-fade-in-up delay-500"
+            className="fixed bottom-6 right-6 md:bottom-8 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-emerald-500/80 backdrop-blur-md border border-white/20 hover:bg-emerald-600/90 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 opacity-0 animate-fade-in-up delay-500"
           >
             <Book size={24} />
           </Button>
@@ -465,13 +513,13 @@ export default function VocabClient({ user }: VocabClientProps) {
         className="relative max-w-lg mx-auto w-full group z-50 opacity-0 animate-fade-in-up delay-200"
       >
         {/* Glow Effect behind */}
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+        <div className={`absolute -inset-0.5 bg-gradient-to-r ${inputValidation.isValid ? 'from-white/20 to-white/10' : 'bg-transparent'} rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000`}></div>
 
-        <div className="relative flex items-center gap-2 bg-black border border-white/20 rounded-full p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30">
-          <Search className="ml-3 text-zinc-500 group-focus-within:text-zinc-300 transition-colors" size={20} />
+        <div className={`relative flex items-center gap-2 bg-black border ${inputValidation.isValid ? 'border-white/20' : 'border-zinc-700 border-dashed'} rounded-full p-1.5 md:p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 ${inputValidation.isValid ? 'focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30' : 'focus-within:ring-transparent focus-within:border-zinc-600 hover:border-zinc-600'}`}>
+          <Search className={`ml-3 transition-colors w-4 h-4 md:w-5 md:h-5 ${inputValidation.isValid ? 'text-zinc-500 group-focus-within:text-zinc-300' : 'text-zinc-700'}`} />
           <Input
             placeholder="Type a word..."
-            className="flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-lg h-12 font-light tracking-wide rounded-full"
+            className={`flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-base h-10 md:h-12 font-light tracking-wide rounded-full ${!inputValidation.isValid && 'text-zinc-500'}`}
             value={inputWord}
             onChange={(e) => {
               setInputWord(e.target.value);
@@ -480,7 +528,7 @@ export default function VocabClient({ user }: VocabClientProps) {
             }}
             onFocus={() => setShowSuggestions(true)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && inputValidation.isValid) {
                 if (selectedIndex >= 0 && suggestions[selectedIndex]) {
                   handleSearch(suggestions[selectedIndex].word);
                 } else {
@@ -497,14 +545,21 @@ export default function VocabClient({ user }: VocabClientProps) {
               }
             }}
           />
-          <Button
-            onClick={() => handleSearch()}
-            disabled={loadingText || !inputWord.trim()}
-            size="icon"
-            className="h-12 w-12 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-          >
-            {loadingText ? <Sparkles className="animate-spin text-black" size={20} /> : <ArrowRight size={24} />}
-          </Button>
+          <div className="relative group/btn">
+            {!inputValidation.isValid && (
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black border border-zinc-800 text-zinc-300 text-[10px] font-bold uppercase tracking-wider rounded-lg whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none shadow-xl">
+                {inputValidation.reason}
+              </div>
+            )}
+            <Button
+              onClick={() => handleSearch()}
+              disabled={loadingText || !inputWord.trim() || !inputValidation.isValid}
+              size="icon"
+              className={`h-10 w-10 md:h-12 md:w-12 rounded-full transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)] ${inputValidation.isValid ? 'bg-white text-black hover:bg-zinc-200' : 'bg-zinc-900 text-zinc-600 border border-zinc-800 shadow-none'}`}
+            >
+              {loadingText ? <Sparkles className="animate-spin text-black w-4 h-4 md:w-5 md:h-5" /> : inputValidation.isValid ? <ArrowRight className="w-5 h-5 md:w-6 md:h-6" /> : <Ban className="w-4 h-4 md:w-5 md:h-5" />}
+            </Button>
+          </div>
         </div>
 
         {/* --- SUGGESTIONS DROPDOWN --- */}
@@ -590,7 +645,38 @@ export default function VocabClient({ user }: VocabClientProps) {
 
       {/* --- RESULTS AREA --- */}
       {result && !loadingText && (
-        <WordCard data={result} loadingImage={loadingImage} ImageComponent={Image} />
+        result.meaning === "Spelling error" ? (
+          <div className="max-w-xl mx-auto w-full animate-in fade-in zoom-in-95 duration-500">
+            <div className="bg-black/60 border border-white/10 backdrop-blur-3xl rounded-3xl p-8 md:p-12 text-center space-y-6 shadow-2xl">
+              <div className="inline-flex p-5 rounded-full bg-white/5 text-white mb-2 ring-1 ring-white/10 shadow-[0_0_15px_-3px_rgba(255,255,255,0.1)]">
+                <SearchX size={32} />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-black text-white tracking-tighter uppercase">Script Error</h3>
+                <p className="text-zinc-400 text-lg font-light leading-relaxed">
+                  We couldn&apos;t find a cinematic match for <br/>
+                  <span className="text-white font-medium border-b border-white/20 pb-0.5">&quot;{result.word}&quot;</span>
+                </p>
+                <p className="text-xs text-zinc-600 font-mono tracking-wider uppercase pt-2">
+                  Check spelling // Try another term
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setResult(null); // Clear the error result
+                  setInputWord("");
+                  setTimeout(() => document.querySelector('input')?.focus(), 10);
+                }}
+                className="mt-6 border-white/10 bg-white/5 hover:bg-white text-white hover:text-black transition-all duration-300 rounded-full px-8"
+              >
+                Clear & Retry
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <WordCard data={result} loadingImage={loadingImage} ImageComponent={Image} />
+        )
       )}
 
       {/* --- PREFERENCES MODAL --- */}
@@ -602,8 +688,8 @@ export default function VocabClient({ user }: VocabClientProps) {
         onClose={() => setShowPreferences(false)}
       />
 
-      {/* --- REVIEW SESSION (Kept at bottom as requested) --- */}
-      <ReviewSession />
+      {/* --- REVIEW SESSION (Only on Initial Screen) --- */}
+      {!result && !loadingText && <ReviewSession />}
     </div>
   );
 }

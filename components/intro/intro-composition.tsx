@@ -78,7 +78,7 @@ const LogoText = ({ frame, fps, width }: { frame: number, fps: number, width: nu
             >
                 {/* ANCHOR TEXT: Vocabul */}
                 <h1 
-                    className="text-7xl sm:text-8xl md:text-9xl font-black text-white leading-none tracking-tighter relative"
+                    className="text-5xl sm:text-7xl md:text-9xl font-black text-white leading-none tracking-tighter relative"
                     style={{
                         transform: `translateY(${translateY}px)`,
                         filter: `blur(${blur}px)`,
@@ -95,7 +95,7 @@ const LogoText = ({ frame, fps, width }: { frame: number, fps: number, width: nu
                     
                     {/* "AI" - Now absolutely positioned relative to the word, but perfectly matched in style */}
                     <span 
-                        className="absolute left-full top-0 h-full ml-2 md:ml-4 flex items-end pb-1 md:pb-1.5" // Aligns baselines perfectly
+                        className="absolute left-full top-0 h-full ml-1 md:ml-4 flex items-end pb-1 md:pb-1.5" // Aligns baselines perfectly
                         style={{
                             opacity: aiOpacity,
                             transform: `translateX(${aiX}px)`,
@@ -104,7 +104,7 @@ const LogoText = ({ frame, fps, width }: { frame: number, fps: number, width: nu
                         }}
                     >
                         <span
-                            className="text-4xl sm:text-6xl md:text-8xl font-black italic"
+                            className="text-3xl sm:text-5xl md:text-8xl font-black italic"
                             style={{
                                 // Same Metallic Gradient
                                 backgroundImage: `linear-gradient(to bottom right, #fff, #999)`,
