@@ -2,7 +2,7 @@ import cssText from "data-text:~/style.css"
 import type { PlasmoCSConfig } from "plasmo"
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Sparkles, Loader2, BookOpen, ExternalLink } from "lucide-react"
+import { X, Sparkles, Loader2, BookOpen, ExternalLink, SearchX } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import WordCard from "@/components/word-card"
@@ -42,6 +42,15 @@ export default function VocabOverlay() {
   const [data, setData] = useState<VocabData | null>(null)
   const [error, setError] = useState("")
 
+  const inputValidation = (() => {
+    const trimmed = word.trim();
+    if (!trimmed) return { isValid: true, reason: "" };
+    const wordCount = trimmed.split(/\s+/).length;
+    if (trimmed.length > 50) return { isValid: false, reason: "Too many characters" };
+    if (wordCount > 4) return { isValid: false, reason: "Too many words" };
+    return { isValid: true, reason: "" };
+  })();
+
   useEffect(() => {
     const messageListener = (message: any) => {
       if (message.type === "OPEN_VOCAB_MODAL" && message.text) {
@@ -56,6 +65,14 @@ export default function VocabOverlay() {
   }, [])
 
   const handleSearch = async (searchWord: string) => {
+    const trimmed = searchWord.trim();
+    const wordCount = trimmed.split(/\s+/).length;
+
+    // Prevent API calls if input is invalid, but let the banner handle the UI
+    if (trimmed.length > 50 || wordCount > 4) {
+      return;
+    }
+
     setLoading(true)
     setLoadingImage(false)
     setError("")
@@ -85,6 +102,13 @@ export default function VocabOverlay() {
         throw new Error("Failed to generate definition")
       }
       const textData = await textRes.json()
+
+      // --- CHECK FOR SPELLING ERROR ---
+      if (textData.meaning === "Spelling error") {
+        setData({ ...textData, word: searchWord });
+        setLoading(false);
+        return;
+      }
 
       // Extract Phonetics
       let phoneticText = ""
@@ -209,6 +233,17 @@ export default function VocabOverlay() {
                </Button>
             </div>
 
+            {/* Validation Error Banner (Industrial Style) */}
+            {!inputValidation.isValid && (
+              <div className="px-4 pt-4 pb-0 animate-in slide-in-from-top-2 fade-in duration-300">
+                <div className="w-full bg-zinc-900 border border-zinc-700 border-dashed rounded-lg p-3 flex items-center justify-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">
+                    System Limit: {inputValidation.reason}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="p-4">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -247,7 +282,33 @@ export default function VocabOverlay() {
                   </div>
                 )
               ) : data ? (
-                <WordCard data={data} loadingImage={loadingImage} compact={true} />
+                data.meaning === "Spelling error" ? (
+                  <div className="bg-black/40 border border-white/10 backdrop-blur-xl rounded-2xl p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="inline-flex p-4 rounded-full bg-white/5 text-white ring-1 ring-white/10 shadow-[0_0_15px_-3px_rgba(255,255,255,0.1)]">
+                      <SearchX size={24} />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-black text-white tracking-tight uppercase">Script Error</h3>
+                      <p className="text-sm text-zinc-400 font-light leading-relaxed">
+                        No cinematic match for <br/>
+                        <span className="text-white font-medium border-b border-white/20 pb-0.5">&quot;{data.word}&quot;</span>
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setIsOpen(false);
+                        setData(null);
+                      }}
+                      className="w-full border-white/10 bg-white/5 hover:bg-white text-white hover:text-black transition-all duration-300 rounded-full h-9 text-xs uppercase tracking-wider"
+                    >
+                      Close Overlay
+                    </Button>
+                  </div>
+                ) : (
+                  <WordCard data={data} loadingImage={loadingImage} compact={true} />
+                )
               ) : null}
             </div>
 

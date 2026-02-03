@@ -66,6 +66,16 @@ export async function POST(req: Request) {
         return Response.json({ error: "Word is required" }, { status: 400 });
     }
 
+    const trimmedWord = word.trim();
+    const wordCount = trimmedWord.split(/\s+/).length;
+
+    if (trimmedWord.length > 50 || wordCount > 4) {
+        return Response.json(
+            { error: "Input too long. Please enter a word or a short phrase (max 4 words / 50 characters)." }, 
+            { status: 400 }
+        );
+    }
+
     // --- PROMPT CONSTRUCTION ---
     // (Prompt preserved exactly as requested)
     let universeInstruction = "";
@@ -95,13 +105,18 @@ export async function POST(req: Request) {
     You are an expert Hollywood scriptwriter and linguist.
     
     YOUR GOAL:
-    1. Define the user's word accurately. If misspelled, return { "meaning": "Spelling error" }.
-    2. ${universeInstruction}
-    3. Generate a SHORT, FUNNY dialogue using the WORD. The usage of the word should match the context and its usage should make sense.
-    4. VISUAL PROMPT: Describe a PHYSICAL SCENE for an image generator. 
-       - describing the characters doing an action that represents the word.
-       - DO NOT use abstract words. Be visual (e.g., "Joey eating a giant pizza").
-       - DO NOT include the word itself.
+    1. FIRST, check if the input word "${word}" is a valid, recognized English word or a well-known proper noun (like "Targaryen" or "Hogwarts").
+    2. IF IT IS GIBBERISH (e.g. "asddsaff"), A TYPO, OR NOT A REAL WORD:
+       - You MUST return exactly: { "meaning": "Spelling error", "universe": "Error", "visual_prompt": "Error", "synonyms": [], "antonyms": [], "conversation": [] }
+       - Do NOT try to interpret it. Do NOT make up a definition.
+    3. IF IT IS A VALID WORD:
+       - Define the user's word accurately.
+       - ${universeInstruction}
+       - Generate a SHORT, FUNNY dialogue using the WORD. The usage of the word should match the context and its usage should make sense.
+       - VISUAL PROMPT: Describe a PHYSICAL SCENE for an image generator. 
+          - describing the characters doing an action that represents the word.
+          - DO NOT use abstract words. Be visual (e.g., "Joey eating a giant pizza").
+          - DO NOT include the word itself.
     
     ONE-SHOT EXAMPLE:
     Input: "Serendipity"

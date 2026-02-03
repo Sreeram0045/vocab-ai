@@ -259,70 +259,81 @@ export default function ReviewSession() {
                                     </div>
 
                                     <div className="p-8 text-center flex-1 flex flex-col justify-center relative overflow-y-auto">
-                                        <div className="relative z-10 space-y-10">
-                                            <div className="space-y-3">
-                                                <h3 className="text-4xl font-black text-white tracking-tight">
-                                                    {currentWord.word}
-                                                </h3>
-                                                {currentWord.universe && (
-                                                    <p className="text-xs font-mono text-zinc-600 uppercase tracking-widest">
-                                                        {currentWord.universe}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <div className="min-h-[120px] flex items-center justify-center">
-                                                <AnimatePresence mode="wait">
-                                                    {!isRevealed ? (
-                                                        <motion.div
-                                                            key="reveal-btn"
-                                                            initial={{ opacity: 0, scale: 0.95 }}
-                                                            animate={{ opacity: 1, scale: 1 }}
-                                                            exit={{ opacity: 0, scale: 0.95 }}
-                                                            transition={{ duration: 0.15 }}
-                                                        >
-                                                            <Button
-                                                                variant="ghost"
-                                                                onClick={(e) => { e.stopPropagation(); setIsRevealed(true); }}
-                                                                className="h-12 px-8 rounded-xl border border-zinc-800 hover:bg-zinc-900 hover:text-white text-zinc-400 transition-all duration-200 cursor-pointer"
-                                                            >
-                                                                <Eye size={16} className="mr-2" />
-                                                                Reveal Definition
-                                                            </Button>
-                                                        </motion.div>
-                                                    ) : (
-                                                        <motion.div
-                                                            key="definition"
-                                                            initial={{ opacity: 0, y: 5 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            className="space-y-8 w-full"
-                                                        >
-                                                            <p className="text-zinc-300 font-light leading-relaxed text-lg">
-                                                                {currentWord.meaning}
-                                                            </p>
-
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); handleVote('forgot'); }}
-                                                                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-amber-950/30 hover:border-amber-900 hover:text-amber-500 text-zinc-500 transition-all duration-200 cursor-pointer"
-                                                                >
-                                                                    <X size={20} className="opacity-70" />
-                                                                    <span className="text-[10px] font-bold uppercase tracking-wider">Forgot</span>
-                                                                </button>
-                                                                
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); handleVote('remembered'); }}
-                                                                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-emerald-950/20 hover:border-emerald-500/30 hover:text-emerald-400 text-zinc-500 transition-all duration-200 cursor-pointer"
-                                                                >
-                                                                    <Check size={20} className="opacity-70" />
-                                                                    <span className="text-[10px] font-bold uppercase tracking-wider">Recall</span>
-                                                                </button>
-                                                            </div>
-                                                        </motion.div>
+                                        <LayoutGroup>
+                                            <div className="relative z-10 space-y-10">
+                                                <motion.div 
+                                                    layout
+                                                    transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                                                    className="space-y-3"
+                                                >
+                                                    <h3 className="text-4xl font-black text-white tracking-tight">
+                                                        {currentWord.word}
+                                                    </h3>
+                                                    {currentWord.universe && (
+                                                        <p className="text-xs font-mono text-zinc-600 uppercase tracking-widest">
+                                                            {currentWord.universe}
+                                                        </p>
                                                     )}
-                                                </AnimatePresence>
+                                                </motion.div>
+
+                                                <div className="min-h-[120px] flex items-center justify-center">
+                                                    <AnimatePresence>
+                                                        {!isRevealed ? (
+                                                            <motion.div
+                                                                key="reveal-btn"
+                                                                layout
+                                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                                animate={{ opacity: 1, scale: 1 }}
+                                                                exit={{ opacity: 0, scale: 0.95, position: "absolute" }}
+                                                                transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                                                            >
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    onClick={(e) => { e.stopPropagation(); setIsRevealed(true); }}
+                                                                    className="h-12 px-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-300 backdrop-blur-md cursor-pointer"
+                                                                >
+                                                                    <Eye size={16} className="mr-2 opacity-70" />
+                                                                    <span className="tracking-wide font-light">Reveal Definition</span>
+                                                                </Button>
+                                                            </motion.div>
+                                                        ) : (
+                                                            <motion.div
+                                                                key="definition"
+                                                                layout
+                                                                initial={{ opacity: 0, y: 20 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                className="space-y-8 w-full"
+                                                                transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                                                            >
+                                                                <div className="p-6 rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                                                                    <p className="text-white/90 font-light leading-relaxed text-xl drop-shadow-sm">
+                                                                        {currentWord.meaning}
+                                                                    </p>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleVote('forgot'); }}
+                                                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-amber-500/10 hover:border-amber-500/20 hover:text-amber-200 text-zinc-500 transition-all duration-300 cursor-pointer group"
+                                                                    >
+                                                                        <X size={20} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                                                                        <span className="text-[10px] font-medium uppercase tracking-widest opacity-70 group-hover:opacity-100">Forgot</span>
+                                                                    </button>
+                                                                    
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleVote('remembered'); }}
+                                                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-200 text-zinc-500 transition-all duration-300 cursor-pointer group"
+                                                                    >
+                                                                        <Check size={20} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                                                                        <span className="text-[10px] font-medium uppercase tracking-widest opacity-70 group-hover:opacity-100">Recall</span>
+                                                                    </button>
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </LayoutGroup>
                                     </div>
 
                                     <div className="absolute bottom-0 left-0 w-full h-1 bg-zinc-900">
