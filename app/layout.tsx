@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://vocabulai.vercel.app"),
   title: "VocabulAI - Master Words Through Cinema",
   description: "Level up your vocabulary with AI-generated scenarios from your favorite TV shows.",
   openGraph: {

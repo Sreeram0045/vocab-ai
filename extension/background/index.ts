@@ -1,8 +1,9 @@
 export {}
 
-const BASE_URL = "https://vocabulai.vercel.app";
+const BASE_URL = process.env.PLASMO_PUBLIC_API_URL || "https://vocabulai.vercel.app";
 
 console.log("VocabulAI Background Service Worker Started")
+console.log("🔌 Connected to:", BASE_URL)
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({

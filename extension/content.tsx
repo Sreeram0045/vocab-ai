@@ -105,11 +105,18 @@ export default function VocabOverlay() {
       let savedId = null;
       let savedIsLearning = false;
 
-      const saveRes = await api.post("/api/history/save", fullData)
-      if (saveRes.ok) {
-          const savedRecord = await saveRes.json()
-          savedId = savedRecord._id;
-          savedIsLearning = savedRecord.isLearning;
+      try {
+        const saveRes = await api.post("/api/history/save", fullData)
+        if (saveRes.ok) {
+            const savedRecord = await saveRes.json()
+            savedId = savedRecord._id;
+            savedIsLearning = savedRecord.isLearning;
+            console.log("✅ Extension: Text saved early. ID:", savedId);
+        } else {
+            console.error("❌ Extension: Early save failed", saveRes.status);
+        }
+      } catch (err) {
+        console.error("❌ Extension: Save exception", err);
       }
 
       // Update State (Button enabled immediately)
@@ -118,27 +125,36 @@ export default function VocabOverlay() {
 
       // 3. Generate Image (Background)
       setLoadingImage(true)
-      const imgRes = await api.post("/api/image", {
-        prompt: textData.visual_prompt,
-        universe: textData.universe
-      })
-      const imgData = await imgRes.json()
+      let imageUrl = null;
 
-      if (imgData.image) {
+      try {
+        const imgRes = await api.post("/api/image", {
+            prompt: textData.visual_prompt,
+            universe: textData.universe
+        })
+        const imgData = await imgRes.json()
+        imageUrl = imgData.image || imgData.url;
+      } catch (e) {
+        console.warn("⚠️ Extension: Image generation failed", e)
+      } finally {
+        setLoadingImage(false)
+      }
+
+      if (imageUrl) {
         // Update Local State with Image
-        setData(prev => prev ? ({ ...prev, imageUrl: imgData.image }) : null)
+        setData(prev => prev ? ({ ...prev, imageUrl }) : null)
         
         // 4. Update DB with Image (if we have an ID)
         if (savedId) {
+            console.log("💾 Extension: Patching DB with Image...");
             await api.post("/api/history/update", {
                 _id: savedId,
-                imageUrl: imgData.image
+                imageUrl
             })
         }
       }
     } catch (err: any) {
       setError(err.message || "Something went wrong")
-    } finally {
       setLoading(false)
       setLoadingImage(false)
     }

@@ -331,10 +331,10 @@ export default function VocabClient({ user }: VocabClientProps) {
 
   // --- THE UI ---
   return (
-    <div className="max-w-5xl w-full p-6 md:p-12 space-y-16 relative">
+    <div className="max-w-5xl w-full p-4 md:p-12 space-y-12 md:space-y-16 relative">
 
       {/* --- STICKY NAVBAR --- */}
-      <div className="w-full flex justify-between items-center sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-black/40 p-4 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] mb-8">
+      <div className="w-full flex justify-between items-center sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-black/40 p-2 md:p-4 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] mb-8 md:mb-8">
         <a href="/" className="flex items-center gap-1 select-none pl-2 cursor-pointer hover:opacity-80 transition-opacity">
           <span className="text-xl font-black tracking-tighter text-white">
             Vocabul
@@ -409,7 +409,7 @@ export default function VocabClient({ user }: VocabClientProps) {
           <Button
             variant="outline"
             size="icon"
-            className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 opacity-0 animate-fade-in-up delay-500"
+            className="fixed bottom-6 right-6 md:bottom-8 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 opacity-0 animate-fade-in-up delay-500"
           >
             <Book size={24} />
           </Button>
@@ -495,11 +495,11 @@ export default function VocabClient({ user }: VocabClientProps) {
         {/* Glow Effect behind */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-white/20 to-white/10 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
 
-        <div className="relative flex items-center gap-2 bg-black border border-white/20 rounded-full p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30">
-          <Search className="ml-3 text-zinc-500 group-focus-within:text-zinc-300 transition-colors" size={20} />
+        <div className="relative flex items-center gap-2 bg-black border border-white/20 rounded-full p-1.5 md:p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30">
+          <Search className="ml-3 text-zinc-500 group-focus-within:text-zinc-300 transition-colors w-4 h-4 md:w-5 md:h-5" />
           <Input
             placeholder="Type a word..."
-            className="flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-lg h-12 font-light tracking-wide rounded-full"
+            className="flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-base h-10 md:h-12 font-light tracking-wide rounded-full"
             value={inputWord}
             onChange={(e) => {
               setInputWord(e.target.value);
@@ -529,9 +529,9 @@ export default function VocabClient({ user }: VocabClientProps) {
             onClick={() => handleSearch()}
             disabled={loadingText || !inputWord.trim()}
             size="icon"
-            className="h-12 w-12 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+            className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-white text-black hover:bg-zinc-200 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)]"
           >
-            {loadingText ? <Sparkles className="animate-spin text-black" size={20} /> : <ArrowRight size={24} />}
+            {loadingText ? <Sparkles className="animate-spin text-black w-4 h-4 md:w-5 md:h-5" /> : <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />}
           </Button>
         </div>
 

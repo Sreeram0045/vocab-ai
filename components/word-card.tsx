@@ -283,11 +283,13 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
       {data._id && (
         <div className="absolute top-4 right-4 z-50">
           <Button
-            size={compact ? "icon" : "sm"}
+            size="icon"
             onClick={handleToggleLearning}
             disabled={isToggling}
-            className={`rounded-full transition-all duration-500 border backdrop-blur-md group cursor-pointer ${
-              compact ? 'gap-0 hover:w-32 hover:px-4 hover:gap-2' : ''
+            className={`rounded-full transition-all duration-500 border backdrop-blur-md group cursor-pointer h-10 md:h-9 ${
+              compact 
+                ? 'w-10 hover:w-32 px-0 hover:px-4 gap-0 hover:gap-2' 
+                : 'w-10 md:w-auto hover:w-32 md:hover:w-auto px-0 md:px-4 hover:px-4 md:hover:px-4 gap-0 md:gap-2 hover:gap-2 md:hover:gap-2'
             } ${isLearning
               ? "bg-cyan-950/40 text-cyan-300 border-cyan-500/30 hover:bg-cyan-900/60 shadow-[0_0_20px_-5px_rgba(34,211,238,0.4)]"
               : "bg-zinc-900/40 text-zinc-400 border-white/10 hover:text-white hover:bg-zinc-800/60 hover:border-white/20"
@@ -295,15 +297,15 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
           >
             {isLearning ? (
               <>
-                <BrainCircuit className={`w-4 h-4 shrink-0 ${!compact ? 'mr-1.5' : ''} animate-pulse`} />
-                <span className={`overflow-hidden transition-all duration-300 ${compact ? 'max-w-0 group-hover:max-w-24' : ''}`}>
+                <BrainCircuit className={`w-4 h-4 shrink-0 ${!compact ? 'md:mr-1.5' : ''} animate-pulse`} />
+                <span className={`overflow-hidden transition-all duration-300 ${compact ? 'max-w-0 group-hover:max-w-24' : 'max-w-0 md:max-w-none group-hover:max-w-24'}`}>
                   Learning
                 </span>
               </>
             ) : (
               <>
-                <Brain className={`w-4 h-4 shrink-0 ${!compact ? 'mr-1.5' : ''}`} />
-                <span className={`overflow-hidden transition-all duration-300 ${compact ? 'max-w-0 group-hover:max-w-24' : ''}`}>
+                <Brain className={`w-4 h-4 shrink-0 ${!compact ? 'md:mr-1.5' : ''}`} />
+                <span className={`overflow-hidden transition-all duration-300 ${compact ? 'max-w-0 group-hover:max-w-24' : 'max-w-0 md:max-w-none group-hover:max-w-24'}`}>
                   Memorize
                 </span>
               </>
@@ -313,23 +315,25 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
       )}
 
       {/* 1. THE "DATA HUD" DEFINITION CARD */}
-      <div className={`relative overflow-hidden rounded-3xl bg-black/40 border border-white/30 backdrop-blur-2xl shadow-2xl group hover:border-white/50 transition-all duration-500 ${compact ? 'p-6' : 'p-8 md:p-12'}`}>
+      <div className={`relative overflow-hidden rounded-3xl bg-black/40 border border-white/30 backdrop-blur-2xl shadow-2xl group hover:border-white/50 transition-all duration-500 ${compact ? 'p-6' : 'p-5 md:p-12'}`}>
         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className={`relative z-10 grid gap-8 items-start ${compact ? 'grid-cols-1' : 'md:grid-cols-[1fr_auto]'}`}>
-          <div className={compact ? 'space-y-4' : 'space-y-6'}>
+        <div className={`relative z-10 grid gap-8 items-start max-w-full ${compact ? 'grid-cols-1' : 'md:grid-cols-[1fr_auto]'}`}>
+          <div className={`min-w-0 ${compact ? 'space-y-4' : 'space-y-6'}`}>
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-2 w-full min-w-0">
                 {voice && (
-                  <button onClick={speakWord} className="text-white/60 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition">
-                    <Volume2 className={compact ? "w-6 h-6" : "w-16 h-16 md:w-16 md:h-16"} />
+                  <button onClick={speakWord} className="shrink-0 text-white/60 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition">
+                    <Volume2 className={compact ? "w-6 h-6" : "w-10 h-10 md:w-16 md:h-16"} />
                   </button>
                 )}
 
                 {/* WORD TITLE */}
-                <h2 className={`font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] ${compact ? 'text-3xl leading-tight' : 'text-7xl md:text-8xl mb-4'}`}>
-                  {displayWord.charAt(0).toUpperCase() + displayWord.slice(1)}
-                </h2>
+                <div className="overflow-x-auto pb-2 w-full">
+                  <h2 className={`font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] whitespace-nowrap ${compact ? 'text-3xl leading-tight' : 'text-4xl sm:text-5xl md:text-8xl mb-4'} pr-4 w-fit`}>
+                    {displayWord.charAt(0).toUpperCase() + displayWord.slice(1)}
+                  </h2>
+                </div>
               </div>
 
               {/* --- PHONETICS (Conditionally Rendered) --- */}
@@ -350,7 +354,7 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
               </div>
             </div>
 
-            <p className={`font-light text-white/80 leading-relaxed ${compact ? 'text-base' : 'text-2xl md:text-3xl max-w-3xl'}`}>
+            <p className={`font-light text-white/80 leading-relaxed ${compact ? 'text-base' : 'text-xl md:text-3xl max-w-3xl'}`}>
               {data.meaning}
             </p>
 
@@ -385,10 +389,10 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
         </div>
       </div>
 
-      {/* ... (Keep Visualization Grid Code exactly as is) ... */}
+      {/* 2. VISUALIZATION GRID */}
       <div className={`grid gap-8 ${compact ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
         {/* ... Image Column ... */}
-        <div className={`group relative rounded-3xl overflow-hidden border border-white/30 bg-black/50 shadow-2xl hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)] transition-all duration-500 ${compact ? 'aspect-video' : 'aspect-square'}`}>
+        <div className={`group relative rounded-3xl overflow-hidden border border-white/30 bg-black/50 shadow-2xl hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)] transition-all duration-500 ${compact ? 'aspect-video' : 'aspect-video md:aspect-square'}`}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-20 transition-opacity duration-500" />
           {loadingImage ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
@@ -414,7 +418,7 @@ export default function WordCard({ data, loadingImage = false, ImageComponent, c
         </div>
 
         {/* ... Conversation Column ... */}
-        <div className={`rounded-3xl border border-white/30 bg-white/5 backdrop-blur-xl flex flex-col justify-center shadow-2xl relative overflow-hidden group hover:border-white/50 transition-all duration-500 ${compact ? 'p-6 space-y-4' : 'p-8 space-y-6'}`}>
+        <div className={`rounded-3xl border border-white/30 bg-white/5 backdrop-blur-xl flex flex-col justify-center shadow-2xl relative overflow-hidden group hover:border-white/50 transition-all duration-500 ${compact ? 'p-6 space-y-4' : 'p-5 md:p-8 space-y-6'}`}>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
           <div className={`flex items-center gap-3 text-white/90 border-b border-white/20 ${compact ? 'pb-2' : 'pb-4'}`}>
             <Tv size={compact ? 16 : 20} className="text-white/60" />
