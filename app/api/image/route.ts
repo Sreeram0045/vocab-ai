@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import cloudinary from "@/lib/cloudinary";
 
 export async function POST(req: Request) {
+    const session = await auth();
+    if (!session || !session.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         // 1. Get the Prompt and Universe from the request
         const { prompt, universe } = await req.json();
@@ -16,7 +23,6 @@ export async function POST(req: Request) {
         const url = `https://router.huggingface.co/hf-inference/models/${model}`;
 
         // 4. Enhanced Prompt Engineering
-        // We tell the AI: "Subject first, Style second"
         const finalPrompt = `${prompt}. 
         Cinematic shot, in the visual style of the TV Show "${universe}". 
         High resolution, photorealistic, 4k, dramatic lighting.`;
@@ -33,22 +39,45 @@ export async function POST(req: Request) {
             body: JSON.stringify({ inputs: finalPrompt }),
         });
 
-        // 6. Handle Errors (If HF is down or busy)
         if (!response.ok) {
             const errorText = await response.text();
             console.error("❌ Image API Error:", errorText);
             return NextResponse.json({ error: "Image generation failed" }, { status: response.status });
         }
 
-        // 7. Success! Convert Blob -> Base64 for the frontend
+        // 6. Get Buffer
         const imageBlob = await response.blob();
-        const buffer = Buffer.from(await imageBlob.arrayBuffer());
-        const base64Image = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+        const arrayBuffer = await imageBlob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-        return NextResponse.json({ image: base64Image });
+        // 7. Upload to Cloudinary
+        // We use a Promise wrapper because cloudinary's upload_stream is callback-based
+        const uploadToCloudinary = () => {
+            return new Promise((resolve, reject) => {
+                const uploadStream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: "vocab-ai", // Folder in Cloudinary
+                        resource_type: "image",
+                    },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                uploadStream.end(buffer);
+            });
+        };
 
-    } catch (error: any) {
-        console.error("🔥 Image Route Exception:", error.message);
+        const cloudinaryResult: any = await uploadToCloudinary();
+        const imageUrl = cloudinaryResult.secure_url;
+
+        console.log("☁️ Uploaded to Cloudinary:", imageUrl);
+
+        return NextResponse.json({ image: imageUrl });
+
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error("🔥 Image Route Exception:", errorMessage);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
