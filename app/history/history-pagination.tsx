@@ -33,11 +33,11 @@ export default function HistoryPagination({ currentPage, totalPages }: HistoryPa
   };
 
   return (
-    <div className="mt-32 flex justify-between items-center border-t border-zinc-800 pt-10 w-full">
+    <div className="mt-32 flex justify-between items-center border-t border-border pt-10 w-full">
       <Button
         variant="ghost"
         disabled={currentPage <= 1 || isPending}
-        className="text-zinc-400 hover:text-white pl-0 hover:bg-transparent disabled:opacity-50 cursor-pointer"
+        className="text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent disabled:opacity-50 cursor-pointer transition-colors"
         onClick={handlePrev}
       >
         {isPending ? (
@@ -48,14 +48,14 @@ export default function HistoryPagination({ currentPage, totalPages }: HistoryPa
         Previous
       </Button>
 
-      <span className="text-zinc-600 text-sm font-mono tracking-widest uppercase">
+      <span className="text-muted-foreground/60 text-sm font-mono tracking-widest uppercase">
         Page {currentPage} / {totalPages}
       </span>
 
       <Button
         variant="ghost"
         disabled={currentPage >= totalPages || isPending}
-        className="text-zinc-400 hover:text-white pr-0 hover:bg-transparent disabled:opacity-50 cursor-pointer"
+        className="text-muted-foreground hover:text-foreground pr-0 hover:bg-transparent disabled:opacity-50 cursor-pointer transition-colors"
         onClick={handleNext}
       >
         Next
