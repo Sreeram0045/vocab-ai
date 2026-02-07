@@ -218,7 +218,7 @@ export default function VocabOverlay() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 50, scale: 0.95 }}
             transition={{ type: "spring", duration: 0.5 }}
-            className="pointer-events-auto w-[400px] max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-950 border border-white/10 shadow-2xl relative z-10"
+            className="dark pointer-events-auto w-[400px] max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-950 border border-white/10 shadow-2xl relative z-10"
           >
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-zinc-950/80 backdrop-blur-md border-b border-white/5">

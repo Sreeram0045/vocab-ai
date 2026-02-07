@@ -84,18 +84,18 @@ export default function NoteEditorClient({ note, vocabulary }: NoteEditorClientP
         </div>
 
         <div className="flex items-center gap-4 pt-1">
-             <span className="text-xs text-zinc-600 font-mono hidden md:inline-block">
+             <span className="text-xs text-muted-foreground/60 font-mono hidden md:inline-block">
                 {isSaving ? "Saving..." : (mounted && lastSaved ? `Last saved ${lastSaved.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "")}
              </span>
              
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-white">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                         <MoreHorizontal size={20} />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-zinc-950 border-white/10">
-                    <DropdownMenuItem onClick={handleDelete} className="text-red-400 focus:text-red-300 focus:bg-red-950/30 cursor-pointer">
+                <DropdownMenuContent align="end" className="bg-card border-border">
+                    <DropdownMenuItem onClick={handleDelete} className="text-destructive dark:text-red-400 focus:text-destructive dark:focus:text-red-300 focus:bg-destructive/10 dark:focus:bg-red-950/20 cursor-pointer p-2.5">
                         <Trash2 className="mr-2 h-4 w-4" /> Delete Note
                     </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -108,7 +108,7 @@ export default function NoteEditorClient({ note, vocabulary }: NoteEditorClientP
         <Input 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="text-5xl md:text-6xl font-black bg-transparent border-none p-0 focus-visible:ring-0 placeholder:text-zinc-700 h-auto"
+            className="text-5xl md:text-6xl font-black bg-transparent border-none p-0 focus-visible:ring-0 placeholder:text-muted-foreground/30 h-auto text-foreground"
             placeholder="Untitled Note"
         />
       </div>

@@ -19,7 +19,7 @@ export default function BackButton({ href = "/", label = "Back to Search" }: { h
     <button 
       onClick={handleBack}
       disabled={isPending}
-      className="inline-flex items-center text-sm text-zinc-500 hover:text-white transition-colors mb-4 group cursor-pointer disabled:opacity-50"
+      className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 group cursor-pointer disabled:opacity-50"
     >
       {isPending ? (
         <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -53,9 +53,9 @@ export default async function HistoryPage(props: {
         <div className="w-full mb-16 flex items-center justify-between">
           <div className="space-y-4">
             <BackButton />
-            <h1 className="text-6xl md:text-7xl font-black tracking-tighter text-white">Library</h1>
-            <p className="text-zinc-500 text-2xl font-light max-w-2xl leading-relaxed">
-              Your collection of <span className="text-white font-medium">{totalItems}</span> curated words, mastered through the lens of cinema.
+            <h1 className="text-6xl md:text-7xl font-black tracking-tighter text-foreground">Library</h1>
+            <p className="text-muted-foreground text-2xl font-light max-w-2xl leading-relaxed">
+              Your collection of <span className="text-foreground font-medium">{totalItems}</span> curated words, mastered through the lens of cinema.
             </p>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default async function HistoryPage(props: {
             className="group flex flex-col gap-4 cursor-pointer"
           >
             {/* Image Card */}
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-zinc-900 border border-white/10 group-hover:border-white/30 transition-all duration-500 shadow-sm group-hover:shadow-md">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted border border-border group-hover:border-border/80 transition-all duration-500 shadow-sm group-hover:shadow-md">
               {item.imageUrl ? (
                 <Image
                   src={item.imageUrl}
@@ -79,14 +79,14 @@ export default async function HistoryPage(props: {
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               ) : (
-                <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-                   <span className="text-zinc-700 font-mono text-xs uppercase tracking-widest">No Visual</span>
+                <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                   <span className="text-muted-foreground font-mono text-xs uppercase tracking-widest">No Visual</span>
                 </div>
               )}
               
               {/* Context Badge on Image */}
               <div className="absolute top-3 left-3">
-                <Badge className="bg-black/60 backdrop-blur-md text-white border-white/10 hover:bg-black/80 font-normal">
+                <Badge className="bg-background/60 backdrop-blur-md text-foreground border-border hover:bg-background/80 font-normal">
                   {item.context}
                 </Badge>
               </div>
@@ -95,17 +95,17 @@ export default async function HistoryPage(props: {
             {/* Content Below */}
             <div className="flex flex-col gap-2 px-1 min-w-0">
                <div className="flex flex-col gap-1">
-                 <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider line-clamp-1">
+                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider line-clamp-1">
                     {item.universe}
                  </span>
                  <h3 
-                   className="text-3xl font-black text-white tracking-tight capitalize group-hover:text-emerald-400 transition-colors truncate block w-full"
+                   className="text-3xl font-black text-foreground tracking-tight capitalize group-hover:text-emerald-500 transition-colors truncate block w-full"
                    title={item.word}
                  >
                     {item.word}
                  </h3>
                </div>
-               <p className="text-zinc-400 text-sm line-clamp-2 font-light leading-relaxed h-10">
+               <p className="text-muted-foreground text-sm line-clamp-2 font-light leading-relaxed h-10">
                  {item.meaning}
                </p>
             </div>
@@ -115,7 +115,7 @@ export default async function HistoryPage(props: {
 
         {historyItems.length === 0 ? (
           <div className="text-center py-20 animate-in fade-in zoom-in duration-500">
-            <p className="text-zinc-500 text-xl">No words found yet.</p>
+            <p className="text-muted-foreground text-xl">No words found yet.</p>
             <Link href="/">
               <Button className="mt-4" variant="secondary">Start Learning</Button>
             </Link>
