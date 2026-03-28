@@ -71,7 +71,7 @@ export async function POST(req: Request) {
 
     if (trimmedWord.length > 50 || wordCount > 4) {
         return Response.json(
-            { error: "Input too long. Please enter a word or a short phrase (max 4 words / 50 characters)." }, 
+            { error: "Input too long. Please enter a word or a short phrase (max 4 words / 50 characters)." },
             { status: 400 }
         );
     }
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
 
             // ATTEMPT 2: Gemini (Fallback)
             const model = genAI.getGenerativeModel({
-                model: "gemini-flash-latest",
+                model: "gemini-3.1-flash-lite-preview",
                 generationConfig: { responseMimeType: "application/json" }
             });
 
