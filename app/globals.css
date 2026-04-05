@@ -62,24 +62,24 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0 0 0);
+  --background: oklch(0.99 0.005 240);
+  --foreground: oklch(0.15 0.01 240);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0 0 0);
+  --card-foreground: oklch(0.15 0.01 240);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0 0 0);
-  --primary: oklch(0 0 0);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.96 0 0);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.96 0 0);
-  --accent-foreground: oklch(0 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.9 0 0);
-  --ring: oklch(0 0 0);
+  --popover-foreground: oklch(0.15 0.01 240);
+  --primary: oklch(0.2 0.01 240);
+  --primary-foreground: oklch(0.98 0.005 240);
+  --secondary: oklch(0.94 0.01 240);
+  --secondary-foreground: oklch(0.15 0.01 240);
+  --muted: oklch(0.94 0.01 240);
+  --muted-foreground: oklch(0.45 0.01 240);
+  --accent: oklch(0.94 0.01 240);
+  --accent-foreground: oklch(0.15 0.01 240);
+  --destructive: oklch(0.55 0.2 25);
+  --border: oklch(0.88 0.01 240);
+  --input: oklch(0.88 0.01 240);
+  --ring: oklch(0.2 0.01 240);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -93,6 +93,13 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Light Mode - Gorgeous Ambient Base */
+  --glow-1: rgba(251, 191, 36, 0.12); /* Warm Amber */
+  --glow-2: rgba(99, 102, 241, 0.12); /* Soft Indigo */
+  --glow-3: rgba(16, 185, 129, 0.08); /* Mint Emerald */
+  --glow-4: rgba(236, 72, 153, 0.08); /* Blush Pink */
+  --dot-grid: rgba(0, 0, 0, 0.04);
 }
 
 .dark {
@@ -127,6 +134,11 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+
+  /* Dark Mode - Original Centered Glow */
+  --bg-gradient-top: rgba(255, 255, 255, 0.12);
+  --bg-gradient-bottom: rgba(255, 255, 255, 0.05);
+  --bg-dot-color: rgba(255, 255, 255, 0.12);
 }
 
 @layer base {
@@ -134,13 +146,51 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    background-image: 
-        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 60%),
-        radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
-        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0);
-    background-size: 100% 100%, 100% 100%, 40px 40px;
+    @apply bg-background text-foreground transition-colors duration-700;
     background-attachment: fixed;
+    position: relative;
+  }
+
+  /* 
+     LIGHT MODE - Gallery Matte
+     A clever combination of large overlapping ambient lights 
+     and a high-precision micro-dot grid for a premium physical feel.
+  */
+  body {
+    background-image: 
+        radial-gradient(at 20% 20%, var(--glow-1) 0px, transparent 40%),
+        radial-gradient(at 80% 80%, var(--glow-2) 0px, transparent 40%),
+        radial-gradient(at 80% 20%, var(--glow-3) 0px, transparent 35%),
+        radial-gradient(at 20% 80%, var(--glow-4) 0px, transparent 35%),
+        radial-gradient(var(--dot-grid) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 24px 24px;
+  }
+
+  /* 
+     DARK MODE - Original identity
+     Restored to the exact centered cinematic look.
+  */
+  .dark body {
+    background-image: 
+        radial-gradient(circle at 50% 0%, var(--bg-gradient-top) 0%, transparent 60%),
+        radial-gradient(circle at 50% 100%, var(--bg-gradient-bottom) 0%, transparent 60%),
+        radial-gradient(circle at 1px 1px, var(--bg-dot-color) 1px, transparent 0);
+    background-size: 100% 100%, 100% 100%, 40px 40px;
+  }
+
+  /* Fixed Grain Overlay for high-end cinematic texture */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .dark body::before {
+    opacity: 0.02;
   }
 
   /* Custom Scrollbar */

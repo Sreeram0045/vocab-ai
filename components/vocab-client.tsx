@@ -29,6 +29,7 @@ import {
 
 import WordCard from "./word-card";
 import PreferencesModal from "@/components/preferences-modal";
+import SettingsModal from "@/components/settings-modal";
 import ReviewSession from "./review-session";
 import { handleSignOut } from "@/app/actions";
 import { COMMON_VOCAB } from "@/lib/common-vocab";
@@ -45,8 +46,8 @@ interface VocabData {
   conversation: string[];
   context?: string;
   imageUrl?: string;
-  phonetics?: string; // Added
-  isLearning?: boolean; // Added
+  phonetics?: string; 
+  isLearning?: boolean;
 }
 
 interface VocabClientProps {
@@ -58,7 +59,7 @@ interface VocabClientProps {
 }
 
 export default function VocabClient({ user }: VocabClientProps) {
-  // --- STATE: The "Memory" of the Screen ---
+  // --- STATE ---
   const [inputWord, setInputWord] = useState("");
   const [result, setResult] = useState<VocabData | null>(null);
   const [loadingText, setLoadingText] = useState(false);
@@ -76,6 +77,7 @@ export default function VocabClient({ user }: VocabClientProps) {
 
   // Preferences State
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userShows, setUserShows] = useState<string[]>([]);
 
@@ -181,7 +183,7 @@ export default function VocabClient({ user }: VocabClientProps) {
     setShowPreferences(false);
   };
 
-  // --- THE BRAIN: Handles the Search Logic (UPDATED) ---
+  // --- THE BRAIN: Handles the Search Logic ---
   async function handleSearch(wordOverride?: string) {
     const term = wordOverride || inputWord;
     if (!term.trim()) return;
@@ -193,15 +195,12 @@ export default function VocabClient({ user }: VocabClientProps) {
 
     const currentSearchWord = term.trim();
 
-    // 1. Reset everything
     setLoadingText(true);
     setLoadingImage(false);
     setError("");
     setResult(null);
 
     try {
-      // --- STEP 1: CHECK DATABASE FIRST (Cache Hit) ---
-      // We use the new /api/word/get endpoint which handles "Lazy Patching" of phonetics
       console.log("Checking database for:", currentSearchWord);
       const checkRes = await fetch("/api/word/get", {
         method: "POST",
@@ -213,13 +212,11 @@ export default function VocabClient({ user }: VocabClientProps) {
         const cachedData = await checkRes.json();
         setResult(cachedData);
         setLoadingText(false);
-        return; // STOP HERE
+        return; 
       }
 
-      // --- STEP 2: CACHE MISS - GENERATE NEW (LLM + Dictionary) ---
       console.log("💨 Cache Miss: Generating Fresh Content");
 
-      // A. Parallel Fetch: LLM (Text) + Dictionary (Phonetics)
       const textPromise = fetch("/api/generate", {
         method: "POST",
         body: JSON.stringify({
@@ -228,7 +225,6 @@ export default function VocabClient({ user }: VocabClientProps) {
         }),
       });
 
-      // Fetch Phonetics in parallel
       const dictionaryPromise = fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${currentSearchWord}`);
 
       const [textRes, dictRes] = await Promise.all([textPromise, dictionaryPromise]);
@@ -240,7 +236,6 @@ export default function VocabClient({ user }: VocabClientProps) {
 
       const textData = await textRes.json();
 
-      // --- CHECK FOR SPELLING ERROR ---
       if (textData.meaning === "Spelling error") {
         setResult({ ...textData, word: currentSearchWord });
         setLoadingText(false);
@@ -248,20 +243,16 @@ export default function VocabClient({ user }: VocabClientProps) {
         return;
       }
 
-      // B. Process Phonetics
       let phoneticText = "";
       try {
         if (dictRes.ok) {
           const dictData = await dictRes.json();
-          // Extract logic
           phoneticText = dictData[0]?.phonetic || dictData[0]?.phonetics?.find((p: any) => p.text)?.text || "";
         }
       } catch (err) { console.error("Dictionary parsing error", err); }
 
-      // 3. Update the screen with text IMMEDIATELY
       const resultWithPhonetics = { ...textData, word: currentSearchWord, phonetics: phoneticText };
       
-      // --- SAVE EARLY (Text Only) ---
       let savedId = null;
       let savedIsLearning = false;
 
@@ -281,7 +272,6 @@ export default function VocabClient({ user }: VocabClientProps) {
         }
       } catch (err) { console.error("❌ Early save exception", err); }
 
-      // Update state (Button enabled immediately)
       setResult({
         ...resultWithPhonetics,
         _id: savedId,
@@ -290,7 +280,6 @@ export default function VocabClient({ user }: VocabClientProps) {
       setLoadingText(false);
       setInputWord("");
 
-      // 4. Fetch IMAGE (Background Process)
       setLoadingImage(true);
       let imageUrl = null;
 
@@ -302,7 +291,7 @@ export default function VocabClient({ user }: VocabClientProps) {
             prompt: textData.visual_prompt,
             universe: textData.universe
           }),
-          signal: AbortSignal.timeout(20000) // Safety timeout
+          signal: AbortSignal.timeout(20000) 
         });
 
         if (imgRes.ok) {
@@ -318,23 +307,18 @@ export default function VocabClient({ user }: VocabClientProps) {
         setLoadingImage(false);
       }
 
-      // 5. UPDATE WITH IMAGE
       if (imageUrl) {
-        // Update Local State
         setResult((prev) => {
             console.log("🔄 Updating Local State with Image");
             return prev ? { ...prev, imageUrl } : null;
         });
 
-        // Update DB (if we have an ID)
         if (savedId) {
             console.log("💾 Patching DB with Image for ID:", savedId);
             await fetch("/api/history/update", {
                 method: "POST",
                 body: JSON.stringify({ _id: savedId, imageUrl }),
             });
-        } else {
-            console.warn("⚠️ Cannot patch DB: No savedId available");
         }
       }
 
@@ -354,18 +338,18 @@ export default function VocabClient({ user }: VocabClientProps) {
     <div className="max-w-5xl w-full p-4 md:p-12 space-y-12 md:space-y-16 relative">
 
       {/* --- STICKY NAVBAR --- */}
-      <div className="w-full flex justify-between items-center sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-black/40 p-2 md:p-4 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] mb-8 md:mb-8">
+      <div className="w-full flex justify-between items-center sticky top-0 z-50 animate-in fade-in slide-in-from-top-4 duration-700 backdrop-blur-md bg-background/40 p-2 md:p-4 rounded-full border border-border shadow-[0_0_20px_rgba(0,0,0,0.03)] dark:shadow-[0_0_20px_rgba(255,255,255,0.05)] mb-8 md:mb-8">
         <a href="/" className="flex items-center gap-1 select-none pl-2 cursor-pointer hover:opacity-80 transition-opacity">
-          <span className="text-xl font-black tracking-tighter text-white">
+          <span className="text-xl font-black tracking-tighter text-foreground">
             Vocabul
           </span>
-          <span className="text-xl font-medium tracking-tight text-white/90">
+          <span className="text-xl font-medium tracking-tight text-foreground/90">
             AI
           </span>
         </a>
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-2 md:gap-3 items-center">
           <Link href="/history">
-            <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer">
+            <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
               <History className="w-5 h-5" />
             </Button>
           </Link>
@@ -376,7 +360,7 @@ export default function VocabClient({ user }: VocabClientProps) {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative h-10 w-10 rounded-full p-0 overflow-hidden border border-white/10 hover:border-white/50 transition-all cursor-pointer bg-zinc-900"
+                  className="relative h-10 w-10 rounded-full p-0 overflow-hidden border border-border hover:border-foreground/30 transition-all cursor-pointer bg-muted"
                 >
                   {user.image ? (
                     <Image
@@ -396,20 +380,24 @@ export default function VocabClient({ user }: VocabClientProps) {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-zinc-950 border-zinc-800 text-zinc-200" align="end" forceMount>
+              <DropdownMenuContent className="w-56 bg-card border-border text-card-foreground shadow-xl dark:shadow-[0_0_30px_rgba(0,0,0,0.5)]" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal p-3">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none text-white">{user.name}</p>
-                    <p className="text-xs leading-none text-zinc-500 truncate">{user.email}</p>
+                    <p className="text-sm font-medium leading-none text-foreground">{user.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-zinc-800" />
-                <DropdownMenuItem onClick={() => setShowPreferences(true)} className="cursor-pointer focus:bg-zinc-900 focus:text-white p-2.5">
-                  <Settings2 className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-white" />
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem onClick={() => setShowPreferences(true)} className="cursor-pointer focus:bg-muted focus:text-foreground p-2.5">
+                  <Tv className="mr-2 h-4 w-4 text-muted-foreground" />
                   <span>Personalize</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-zinc-800" />
-                <DropdownMenuItem onClick={() => handleSignOut()} className="cursor-pointer text-red-400 focus:text-red-300 focus:bg-red-950/20 p-2.5">
+                <DropdownMenuItem onClick={() => setShowSettings(true)} className="cursor-pointer focus:bg-muted focus:text-foreground p-2.5">
+                  <Settings2 className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem onClick={() => handleSignOut()} className="cursor-pointer text-destructive dark:text-red-400 focus:text-destructive dark:focus:text-red-300 focus:bg-destructive/10 dark:focus:bg-red-950/20 p-2.5">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign out</span>
                 </DropdownMenuItem>
@@ -417,7 +405,7 @@ export default function VocabClient({ user }: VocabClientProps) {
             </DropdownMenu>
           ) : (
             <Link href="/api/auth/signin">
-              <Button variant="outline" size="sm" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10 text-white">Sign In</Button>
+              <Button variant="outline" size="sm" className="rounded-full bg-foreground/5 border-border hover:bg-foreground/10 text-foreground shadow-sm">Sign In</Button>
             </Link>
           )}
         </div>
@@ -429,50 +417,48 @@ export default function VocabClient({ user }: VocabClientProps) {
           <Button
             variant="outline"
             size="icon"
-            className="fixed bottom-6 right-6 md:bottom-8 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-emerald-500/80 backdrop-blur-md border border-white/20 hover:bg-emerald-600/90 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 opacity-0 animate-fade-in-up delay-500"
+            className="fixed bottom-6 right-6 md:bottom-8 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/20 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-900 dark:text-white shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_0_30px_rgba(255,255,255,0.12)] cursor-pointer z-50 transition-all duration-300 hover:scale-110 hover:-translate-y-1 opacity-0 animate-fade-in-up delay-500"
           >
             <Book size={24} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="sm:max-w-md bg-zinc-950/95 backdrop-blur-xl border-l border-white/10 overflow-y-auto">
+        <SheetContent side="right" className="sm:max-w-md bg-card/95 backdrop-blur-xl border-l border-border overflow-y-auto">
           <SheetHeader className="mb-8 text-left">
-            <SheetTitle className="text-2xl font-black tracking-tighter text-white">Writer&apos;s Room</SheetTitle>
-            <SheetDescription className="text-zinc-500 font-light">
+            <SheetTitle className="text-2xl font-black tracking-tighter text-foreground">Writer&apos;s Room</SheetTitle>
+            <SheetDescription className="text-muted-foreground font-light">
               Your creative workspace.
             </SheetDescription>
           </SheetHeader>
 
           <div className="flex flex-col gap-6 mt-2">
 
-            {/* Primary Action: Go to Dashboard */}
-            <Link href="/notes" className="group relative flex items-center justify-between p-6 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-emerald-500/60 hover:from-emerald-900/20 hover:to-black transition-all duration-500 overflow-hidden cursor-pointer">
+            <Link href="/notes" className="group relative flex items-center justify-between p-6 rounded-2xl bg-gradient-to-br from-foreground/10 to-foreground/5 border border-border hover:border-emerald-500/60 hover:from-emerald-900/20 hover:to-background transition-all duration-500 overflow-hidden cursor-pointer shadow-sm hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(16,185,129,0.1)]">
               <div className="relative z-10">
-                <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">Enter Room</h3>
-                <p className="text-xs text-zinc-400 mt-1">View all {notesList.length} notes</p>
+                <h3 className="text-lg font-bold text-foreground group-hover:text-emerald-500 transition-colors">Enter Room</h3>
+                <p className="text-xs text-muted-foreground mt-1">View all {notesList.length} notes</p>
               </div>
-              <div className="relative z-10 p-3 rounded-full bg-white/5 group-hover:bg-emerald-500/20 group-hover:text-emerald-400 transition-all text-white/50">
+              <div className="relative z-10 p-3 rounded-full bg-foreground/5 group-hover:bg-emerald-500/20 group-hover:text-emerald-500 transition-all text-foreground/50">
                 <ArrowRight size={20} />
               </div>
-              {/* Glow */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
             </Link>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Quick Drafts</h3>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Quick Drafts</h3>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCreateNote}
-                  className="h-8 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 -mr-2 cursor-pointer"
+                  className="h-8 text-xs text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 -mr-2 cursor-pointer"
                 >
                   <Plus className="w-3 h-3 mr-1.5" /> New Note
                 </Button>
               </div>
 
               {notesList.length === 0 ? (
-                <div className="p-8 border border-dashed border-white/10 rounded-2xl text-center">
-                  <p className="text-zinc-600 italic text-sm mb-4">No notes yet.</p>
+                <div className="p-8 border border-dashed border-border rounded-2xl text-center shadow-inner">
+                  <p className="text-muted-foreground italic text-sm mb-4">No notes yet.</p>
                   <Button variant="secondary" size="sm" onClick={handleCreateNote} className="cursor-pointer">Create First Note</Button>
                 </div>
               ) : (
@@ -481,14 +467,14 @@ export default function VocabClient({ user }: VocabClientProps) {
                     <Link
                       key={note._id}
                       href={`/notes/${note._id}`}
-                      className="block p-4 rounded-xl bg-black/20 border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all group cursor-pointer"
+                      className="block p-4 rounded-xl bg-muted/20 border border-border hover:border-foreground/30 hover:bg-muted transition-all group cursor-pointer shadow-sm hover:shadow-md"
                     >
                       <div className="flex justify-between items-start">
-                        <h4 className="font-medium text-zinc-300 group-hover:text-white transition-colors truncate pr-4 text-sm">
+                        <h4 className="font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate pr-4 text-sm">
                           {note.title || "Untitled Note"}
                         </h4>
                       </div>
-                      <p className="text-[10px] text-zinc-600 mt-2 font-mono uppercase tracking-wider">
+                      <p className="text-[10px] text-muted-foreground mt-2 font-mono uppercase tracking-wider">
                         {new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </p>
                     </Link>
@@ -502,7 +488,7 @@ export default function VocabClient({ user }: VocabClientProps) {
       </Sheet>
 
       <div className="text-center space-y-4">
-        <p className="text-white/50 text-lg max-w-xl mx-auto font-light tracking-wide opacity-0 animate-fade-in-up">
+        <p className="text-foreground/50 text-lg max-w-xl mx-auto font-light tracking-wide opacity-0 animate-fade-in-up">
           Master vocabulary through the lens of cinema.
         </p>
       </div>
@@ -512,14 +498,13 @@ export default function VocabClient({ user }: VocabClientProps) {
         ref={searchContainerRef}
         className="relative max-w-lg mx-auto w-full group z-50 opacity-0 animate-fade-in-up delay-200"
       >
-        {/* Glow Effect behind */}
-        <div className={`absolute -inset-0.5 bg-gradient-to-r ${inputValidation.isValid ? 'from-white/20 to-white/10' : 'bg-transparent'} rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000`}></div>
+        <div className={`absolute -inset-0.5 bg-gradient-to-r ${inputValidation.isValid ? 'from-foreground/20 to-foreground/10' : 'bg-transparent'} rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000`}></div>
 
-        <div className={`relative flex items-center gap-2 bg-black border ${inputValidation.isValid ? 'border-white/20' : 'border-zinc-700 border-dashed'} rounded-full p-1.5 md:p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:ring-1 ${inputValidation.isValid ? 'focus-within:ring-white/30 focus-within:border-white/40 hover:border-white/30' : 'focus-within:ring-transparent focus-within:border-zinc-600 hover:border-zinc-600'}`}>
-          <Search className={`ml-3 transition-colors w-4 h-4 md:w-5 md:h-5 ${inputValidation.isValid ? 'text-zinc-500 group-focus-within:text-zinc-300' : 'text-zinc-700'}`} />
+        <div className={`relative flex items-center gap-2 bg-background border ${inputValidation.isValid ? 'border-border' : 'border-muted-foreground border-dashed'} rounded-full p-1.5 md:p-2 shadow-2xl dark:shadow-[0_0_40px_rgba(255,255,255,0.05)] backdrop-blur-xl transition-all duration-300 focus-within:ring-1 ${inputValidation.isValid ? 'focus-within:ring-foreground/30 focus-within:border-foreground/40 hover:border-foreground/30' : 'focus-within:ring-transparent focus-within:border-muted-foreground hover:border-muted-foreground'}`}>
+          <Search className={`ml-3 transition-colors w-4 h-4 md:w-5 md:h-5 ${inputValidation.isValid ? 'text-muted-foreground group-focus-within:text-foreground' : 'text-muted-foreground'}`} />
           <Input
             placeholder="Type a word..."
-            className={`flex-1 bg-zinc-900/50 border-none text-white placeholder:text-zinc-600 focus-visible:ring-0 px-4 text-base h-10 md:h-12 font-light tracking-wide rounded-full ${!inputValidation.isValid && 'text-zinc-500'}`}
+            className={`flex-1 bg-muted/50 border-none text-foreground placeholder:text-muted-foreground focus-visible:ring-0 px-4 text-base h-10 md:h-12 font-light tracking-wide rounded-full ${!inputValidation.isValid && 'text-muted-foreground'}`}
             value={inputWord}
             onChange={(e) => {
               setInputWord(e.target.value);
@@ -547,7 +532,7 @@ export default function VocabClient({ user }: VocabClientProps) {
           />
           <div className="relative group/btn">
             {!inputValidation.isValid && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black border border-zinc-800 text-zinc-300 text-[10px] font-bold uppercase tracking-wider rounded-lg whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none shadow-xl">
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background border border-border text-foreground text-[10px] font-bold uppercase tracking-wider rounded-lg whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none shadow-xl">
                 {inputValidation.reason}
               </div>
             )}
@@ -555,14 +540,13 @@ export default function VocabClient({ user }: VocabClientProps) {
               onClick={() => handleSearch()}
               disabled={loadingText || !inputWord.trim() || !inputValidation.isValid}
               size="icon"
-              className={`h-10 w-10 md:h-12 md:w-12 rounded-full transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)] ${inputValidation.isValid ? 'bg-white text-black hover:bg-zinc-200' : 'bg-zinc-900 text-zinc-600 border border-zinc-800 shadow-none'}`}
+              className={`h-10 w-10 md:h-12 md:w-12 rounded-full transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(0,0,0,0.15)] ${inputValidation.isValid ? 'bg-foreground text-background hover:bg-foreground/90' : 'bg-muted text-muted-foreground border border-border shadow-none'}`}
             >
-              {loadingText ? <Sparkles className="animate-spin text-black w-4 h-4 md:w-5 md:h-5" /> : inputValidation.isValid ? <ArrowRight className="w-5 h-5 md:w-6 md:h-6" /> : <Ban className="w-4 h-4 md:w-5 md:h-5" />}
+              {loadingText ? <Sparkles className="animate-spin text-background w-4 h-4 md:w-5 md:h-5" /> : inputValidation.isValid ? <ArrowRight className="w-5 h-5 md:w-6 md:h-6" /> : <Ban className="w-4 h-4 md:w-5 md:h-5" />}
             </Button>
           </div>
         </div>
 
-        {/* --- SUGGESTIONS DROPDOWN --- */}
         <AnimatePresence>
           {showSuggestions && suggestions.length > 0 && (
             <motion.div
@@ -570,7 +554,7 @@ export default function VocabClient({ user }: VocabClientProps) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.99 }}
               transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-              className="absolute top-full left-0 right-0 mt-2 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] z-40 ring-1 ring-white/5"
+              className="absolute top-full left-0 right-0 mt-2 bg-background/60 backdrop-blur-2xl border border-border rounded-2xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] z-40 ring-1 ring-foreground/5"
             >
               <div className="py-1.5 flex flex-col">
                 {suggestions.map((suggestion, index) => {
@@ -582,13 +566,13 @@ export default function VocabClient({ user }: VocabClientProps) {
                       onMouseEnter={() => setSelectedIndex(index)}
                       className={`
                         relative w-full text-left px-5 py-3 flex items-center justify-between transition-all duration-300 cursor-pointer group
-                        ${isActive ? "bg-white/[0.08]" : "hover:bg-white/[0.03]"}
+                        ${isActive ? "bg-foreground/[0.08]" : "hover:bg-foreground/[0.03]"}
                       `}
                     >
                       <div className="flex items-center gap-4">
                         <div className={`
                           transition-all duration-300
-                          ${isActive ? "text-white scale-110" : "text-zinc-600"}
+                          ${isActive ? "text-foreground scale-110" : "text-muted-foreground"}
                         `}>
                           {suggestion.type === 'history' ? (
                             <Clock className="w-3.5 h-3.5" />
@@ -598,7 +582,7 @@ export default function VocabClient({ user }: VocabClientProps) {
                         </div>
                         <span className={`
                           text-sm tracking-tight transition-all duration-300
-                          ${isActive ? "text-white font-medium [text-shadow:0_0_20px_rgba(255,255,255,0.3)]" : "text-zinc-400 font-light"}
+                          ${isActive ? "text-foreground font-medium" : "text-muted-foreground font-light"}
                         `}>
                           {suggestion.word}
                         </span>
@@ -609,7 +593,7 @@ export default function VocabClient({ user }: VocabClientProps) {
                           layoutId="arrow"
                           initial={{ opacity: 0, x: -5 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className="text-white/40"
+                          className="text-foreground/40"
                         >
                           <ArrowRight className="w-3.5 h-3.5" />
                         </motion.div>
@@ -623,52 +607,49 @@ export default function VocabClient({ user }: VocabClientProps) {
         </AnimatePresence>
       </div>
 
-      {/* ERROR MESSAGE */}
       {error && (
-        <Alert variant="destructive" className="bg-red-950/30 border-red-900/50 text-red-200">
+        <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {/* LOADING SKELETON */}
       {loadingText && (
         <div className="space-y-8 animate-pulse">
-          <div className="h-40 w-full rounded-3xl bg-white/5 border border-white/20" />
+          <div className="h-40 w-full rounded-3xl bg-foreground/5 border border-border" />
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="h-80 w-full rounded-3xl bg-white/5 border border-white/20" />
-            <div className="h-80 w-full rounded-3xl bg-white/5 border border-white/20" />
+            <div className="h-80 w-full rounded-3xl bg-foreground/5 border border-border" />
+            <div className="h-80 w-full rounded-3xl bg-foreground/5 border border-border" />
           </div>
         </div>
       )}
 
-      {/* --- RESULTS AREA --- */}
       {result && !loadingText && (
         result.meaning === "Spelling error" ? (
           <div className="max-w-xl mx-auto w-full animate-in fade-in zoom-in-95 duration-500">
-            <div className="bg-black/60 border border-white/10 backdrop-blur-3xl rounded-3xl p-8 md:p-12 text-center space-y-6 shadow-2xl">
-              <div className="inline-flex p-5 rounded-full bg-white/5 text-white mb-2 ring-1 ring-white/10 shadow-[0_0_15px_-3px_rgba(255,255,255,0.1)]">
+            <div className="bg-background/60 border border-border backdrop-blur-3xl rounded-3xl p-8 md:p-12 text-center space-y-6 shadow-2xl">
+              <div className="inline-flex p-5 rounded-full bg-foreground/5 text-foreground mb-2 ring-1 ring-border shadow-[0_0_15px_-3px_rgba(0,0,0,0.1)]">
                 <SearchX size={32} />
               </div>
               <div className="space-y-3">
-                <h3 className="text-2xl font-black text-white tracking-tighter uppercase">Script Error</h3>
-                <p className="text-zinc-400 text-lg font-light leading-relaxed">
+                <h3 className="text-2xl font-black text-foreground tracking-tighter uppercase">Script Error</h3>
+                <p className="text-muted-foreground text-lg font-light leading-relaxed">
                   We couldn&apos;t find a cinematic match for <br/>
-                  <span className="text-white font-medium border-b border-white/20 pb-0.5">&quot;{result.word}&quot;</span>
+                  <span className="text-foreground font-medium border-b border-border pb-0.5">&quot;{result.word}&quot;</span>
                 </p>
-                <p className="text-xs text-zinc-600 font-mono tracking-wider uppercase pt-2">
+                <p className="text-xs text-muted-foreground/60 font-mono tracking-wider uppercase pt-2">
                   Check spelling // Try another term
                 </p>
               </div>
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setResult(null); // Clear the error result
+                  setResult(null); 
                   setInputWord("");
                   setTimeout(() => document.querySelector('input')?.focus(), 10);
                 }}
-                className="mt-6 border-white/10 bg-white/5 hover:bg-white text-white hover:text-black transition-all duration-300 rounded-full px-8"
+                className="mt-6 border-border bg-foreground/5 hover:bg-foreground text-foreground hover:text-background transition-all duration-300 rounded-full px-8"
               >
                 Clear & Retry
               </Button>
@@ -679,7 +660,6 @@ export default function VocabClient({ user }: VocabClientProps) {
         )
       )}
 
-      {/* --- PREFERENCES MODAL --- */}
       <PreferencesModal
         isOpen={showPreferences}
         initialShows={userShows}
@@ -688,7 +668,11 @@ export default function VocabClient({ user }: VocabClientProps) {
         onClose={() => setShowPreferences(false)}
       />
 
-      {/* --- REVIEW SESSION (Only on Initial Screen) --- */}
+      <SettingsModal 
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
+
       {!result && !loadingText && <ReviewSession />}
     </div>
   );

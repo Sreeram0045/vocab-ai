@@ -145,20 +145,20 @@ export default function ReviewSession() {
                             borderRadius: isExpanded ? 24 : 28,
                             width: isExpanded ? "min(400px, 92vw)" : 220,
                             height: isExpanded ? 520 : 56,
-                            borderColor: isExpanded ? "rgba(63, 63, 70, 1)" : "rgba(255, 255, 255, 0.2)",
+                            borderColor: isExpanded ? "var(--border)" : "var(--border)",
                             boxShadow: isExpanded 
-                                ? "0 0 40px rgba(0, 0, 0, 0.5)" 
-                                : "0 0 25px rgba(255, 255, 255, 0.15)"
+                                ? "0 0 40px rgba(0, 0, 0, 0.2)" 
+                                : "0 0 25px rgba(0, 0, 0, 0.05)"
                         }}
                         exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.4 } }}
-                        className={`pointer-events-auto bg-zinc-950 border overflow-hidden relative flex flex-col cursor-pointer will-change-transform
-                            ${isExpanded ? 'cursor-default' : 'hover:bg-white/[0.03]'}`}
+                        className={`pointer-events-auto bg-card border overflow-hidden relative flex flex-col cursor-pointer shadow-2xl will-change-transform
+                            ${isExpanded ? 'cursor-default' : 'hover:bg-foreground/[0.03]'}`}
                         onClick={handleContainerClick}
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
                         whileHover={!isExpanded ? {
-                            boxShadow: "0 0 35px rgba(255, 255, 255, 0.2)",
-                            borderColor: "rgba(255, 255, 255, 0.4)"
+                            boxShadow: "0 0 35px rgba(0, 0, 0, 0.1)",
+                            borderColor: "oklch(var(--border) / 0.8)"
                         } : {}}
                         transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     >
@@ -168,10 +168,10 @@ export default function ReviewSession() {
                             animate={{ opacity: (!isExpanded && isSessionComplete) ? 1 : 0 }}
                             transition={{ duration: 0.2 }}
                         >
-                            <div className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+                            <div className="w-5 h-5 rounded-full bg-muted text-muted-foreground flex items-center justify-center shadow-sm">
                                 <Check size={12} strokeWidth={3} />
                             </div>
-                            <span className="text-sm font-medium text-zinc-400 tracking-tight">Session Finished</span>
+                            <span className="text-sm font-medium text-muted-foreground tracking-tight">Session Finished</span>
                         </motion.div>
 
                         {/* 2. COMPACT "REVIEW" PILL */}
@@ -181,12 +181,12 @@ export default function ReviewSession() {
                             transition={{ duration: 0.1 }}
                         >
                             <div className="relative flex items-center justify-center">
-                                <BrainCircuit size={18} className="text-zinc-400" />
+                                <BrainCircuit size={18} className="text-muted-foreground" />
                                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
                             </div>
-                            <span className="text-sm font-medium text-zinc-300">Daily Review</span>
-                            <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
-                            <span className="text-xs font-mono font-bold text-zinc-200">{dueWords.length}</span>
+                            <span className="text-sm font-medium text-foreground">Daily Review</span>
+                            <div className="h-4 w-[1px] bg-border mx-1" />
+                            <span className="text-xs font-mono font-bold text-foreground">{dueWords.length}</span>
                         </motion.div>
 
                         {/* 3. EXPANDED CARD CONTENT */}
@@ -200,7 +200,7 @@ export default function ReviewSession() {
                         >
                             {isSessionComplete ? (
                                 <div className="flex flex-col items-center justify-center h-full space-y-8 p-12 text-center relative">
-                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_0%,transparent_70%)]" />
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,var(--foreground)_5%,transparent_70%)] opacity-[0.03]" />
                                     
                                     <motion.div
                                         initial={{ scale: 0.8, opacity: 0 }}
@@ -208,17 +208,17 @@ export default function ReviewSession() {
                                         transition={{ type: "spring", stiffness: 100, delay: 0.2 }}
                                         className="relative"
                                     >
-                                        <div className="absolute inset-0 blur-3xl bg-white/10 rounded-full scale-150" />
-                                        <div className="relative inline-flex p-8 rounded-full bg-gradient-to-b from-zinc-800 to-zinc-900 border border-zinc-700/50 text-zinc-100 shadow-2xl">
-                                            <Trophy size={56} strokeWidth={1.5} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                                        <div className="absolute inset-0 blur-3xl bg-foreground/10 rounded-full scale-150" />
+                                        <div className="relative inline-flex p-8 rounded-full bg-gradient-to-b from-card to-muted border border-border text-foreground shadow-2xl">
+                                            <Trophy size={56} strokeWidth={1.5} className="drop-shadow-[0_0_15px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
                                         </div>
                                     </motion.div>
 
                                     <div className="space-y-3 relative z-10">
-                                        <h3 className="text-3xl font-light text-white tracking-tighter italic">
+                                        <h3 className="text-3xl font-light text-foreground tracking-tighter italic">
                                             Session Complete
                                         </h3>
-                                        <p className="text-zinc-500 text-sm font-light max-w-[240px] leading-relaxed mx-auto">
+                                        <p className="text-muted-foreground text-sm font-light max-w-[240px] leading-relaxed mx-auto">
                                             Your linguistic neural paths have been successfully reinforced.
                                         </p>
                                     </div>
@@ -229,20 +229,20 @@ export default function ReviewSession() {
                                             setIsExpanded(false);
                                             setIsPinned(false);
                                         }}
-                                        className="px-8 py-2 rounded-full border border-zinc-800 bg-transparent text-zinc-500 text-xs font-medium tracking-widest uppercase hover:border-zinc-600 hover:text-zinc-200 transition-all duration-300 cursor-pointer relative z-10"
+                                        className="px-8 py-2 rounded-full border border-border bg-transparent text-muted-foreground text-xs font-medium tracking-widest uppercase hover:border-foreground/30 hover:text-foreground transition-all duration-300 cursor-pointer relative z-10"
                                     >
                                         Dismiss
                                     </button>
                                 </div>
                             ) : (
                                 <>
-                                    <div className="flex items-center justify-between p-5 border-b border-zinc-900 shrink-0">
+                                    <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
                                         <div className="flex items-center gap-2">
-                                            <Brain size={16} className="text-zinc-500" />
-                                            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 font-bold">Neural Link</span>
+                                            <Brain size={16} className="text-muted-foreground" />
+                                            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground font-bold">Neural Link</span>
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <span className="text-xs font-mono text-zinc-600">
+                                            <span className="text-xs font-mono text-muted-foreground">
                                                 {totalSessionCount - dueWords.length + 1} / {totalSessionCount}
                                             </span>
                                             <button 
@@ -251,7 +251,7 @@ export default function ReviewSession() {
                                                     setIsExpanded(false); 
                                                     setIsPinned(false);
                                                 }}
-                                                className="text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                                                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                                             >
                                                 <ChevronDown size={18} />
                                             </button>
@@ -266,11 +266,11 @@ export default function ReviewSession() {
                                                     transition={{ type: "spring", stiffness: 120, damping: 20 }}
                                                     className="space-y-3"
                                                 >
-                                                    <h3 className="text-4xl font-black text-white tracking-tight">
+                                                    <h3 className="text-4xl font-black text-foreground tracking-tight">
                                                         {currentWord.word}
                                                     </h3>
                                                     {currentWord.universe && (
-                                                        <p className="text-xs font-mono text-zinc-600 uppercase tracking-widest">
+                                                        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
                                                             {currentWord.universe}
                                                         </p>
                                                     )}
@@ -290,7 +290,7 @@ export default function ReviewSession() {
                                                                 <Button
                                                                     variant="ghost"
                                                                     onClick={(e) => { e.stopPropagation(); setIsRevealed(true); }}
-                                                                    className="h-12 px-8 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white hover:border-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-300 backdrop-blur-md cursor-pointer"
+                                                                    className="h-12 px-8 rounded-full border border-border bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground transition-all duration-300 backdrop-blur-md cursor-pointer"
                                                                 >
                                                                     <Eye size={16} className="mr-2 opacity-70" />
                                                                     <span className="tracking-wide font-light">Reveal Definition</span>
@@ -305,8 +305,8 @@ export default function ReviewSession() {
                                                                 className="space-y-8 w-full"
                                                                 transition={{ type: "spring", stiffness: 120, damping: 20 }}
                                                             >
-                                                                <div className="p-6 rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
-                                                                    <p className="text-white/90 font-light leading-relaxed text-xl drop-shadow-sm">
+                                                                <div className="p-6 rounded-2xl bg-gradient-to-b from-foreground/[0.05] to-transparent border border-border shadow-inner">
+                                                                    <p className="text-foreground/90 font-light leading-relaxed text-xl drop-shadow-sm">
                                                                         {currentWord.meaning}
                                                                     </p>
                                                                 </div>
@@ -314,7 +314,7 @@ export default function ReviewSession() {
                                                                 <div className="grid grid-cols-2 gap-4">
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); handleVote('forgot'); }}
-                                                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-amber-500/10 hover:border-amber-500/20 hover:text-amber-200 text-zinc-500 transition-all duration-300 cursor-pointer group"
+                                                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-border bg-foreground/[0.02] hover:bg-amber-500/10 hover:border-amber-500/20 hover:text-amber-700 dark:hover:text-amber-200 text-muted-foreground transition-all duration-300 cursor-pointer group"
                                                                     >
                                                                         <X size={20} className="opacity-50 group-hover:opacity-100 transition-opacity" />
                                                                         <span className="text-[10px] font-medium uppercase tracking-widest opacity-70 group-hover:opacity-100">Forgot</span>
@@ -322,7 +322,7 @@ export default function ReviewSession() {
                                                                     
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); handleVote('remembered'); }}
-                                                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-200 text-zinc-500 transition-all duration-300 cursor-pointer group"
+                                                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-border bg-foreground/[0.02] hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-200 text-muted-foreground transition-all duration-300 cursor-pointer group"
                                                                     >
                                                                         <Check size={20} className="opacity-50 group-hover:opacity-100 transition-opacity" />
                                                                         <span className="text-[10px] font-medium uppercase tracking-widest opacity-70 group-hover:opacity-100">Recall</span>
@@ -336,7 +336,7 @@ export default function ReviewSession() {
                                         </LayoutGroup>
                                     </div>
 
-                                    <div className="absolute bottom-0 left-0 w-full h-1 bg-zinc-900">
+                                    <div className="absolute bottom-0 left-0 w-full h-1 bg-muted">
                                         <motion.div 
                                             className="h-full bg-emerald-600"
                                             initial={{ width: 0 }}

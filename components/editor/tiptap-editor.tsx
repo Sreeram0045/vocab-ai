@@ -4,6 +4,7 @@ import { VocabularyMatcher } from './extensions/vocabulary-matcher'
 import { useEffect, useState, useRef } from 'react'
 import { Bold, Italic, List, ListOrdered, Quote, Heading1 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTheme } from 'next-themes'
 
 interface VocabularyItem {
   word: string;
@@ -24,6 +25,8 @@ export default function TiptapEditor({
 }: TiptapEditorProps) {
   const [isSaving, setIsSaving] = useState(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const { theme, resolvedTheme } = useTheme()
+  const currentTheme = resolvedTheme || theme
   
   // Tooltip State
   const [hoveredWord, setHoveredWord] = useState<{
@@ -59,7 +62,10 @@ export default function TiptapEditor({
     content: initialContent,
     editorProps: {
       attributes: {
-        class: 'prose prose-invert max-w-none focus:outline-none min-h-[300px] py-4 text-white/90 leading-relaxed',
+        class: cn(
+          'prose max-w-none focus:outline-none min-h-[300px] py-4 leading-relaxed transition-colors duration-300',
+          currentTheme === 'dark' ? 'prose-invert text-foreground/90' : 'text-foreground/90'
+        ),
       },
       handleDOMEvents: {
         mouseover: (view, event) => {
@@ -128,25 +134,25 @@ export default function TiptapEditor({
       {/* Tooltip Overlay */}
       {hoveredWord && (
         <div 
-          className="fixed z-[9999] w-64 p-4 bg-zinc-950/90 border border-emerald-500/30 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.2)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 pointer-events-none"
+          className="fixed z-[9999] w-64 p-4 bg-card/95 border border-emerald-500/30 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.2)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 pointer-events-none"
           style={{ 
             top: hoveredWord.y - 12, // slightly above the word
             left: hoveredWord.x, 
             transform: 'translate(-50%, -100%)' 
           }}
         >
-           <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-zinc-950 border-b border-r border-emerald-500/30 rotate-45"></div>
+           <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-b border-r border-emerald-500/30 rotate-45"></div>
            
-           <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+           <div className="flex items-center gap-2 mb-2 border-b border-border pb-2">
+             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                 {hoveredWord.universe}
              </span>
            </div>
            
-           <h4 className="text-xl font-bold text-white mb-1 capitalize">
+           <h4 className="text-xl font-bold text-foreground mb-1 capitalize">
              {hoveredWord.word}
            </h4>
-           <p className="text-sm text-zinc-400 leading-relaxed font-light">
+           <p className="text-sm text-muted-foreground leading-relaxed font-light">
              {hoveredWord.meaning}
            </p>
         </div>
@@ -156,44 +162,44 @@ export default function TiptapEditor({
         <div className="flex gap-2">
             <button
                 onClick={() => editor.chain().focus().toggleBold().run()}
-                className={cn("p-2 rounded-md hover:bg-white/5 border border-white/5", editor.isActive('bold') && "bg-white/10 text-emerald-400")}
+                className={cn("p-2 rounded-md hover:bg-foreground/5 border border-border/50", editor.isActive('bold') && "bg-foreground/10 text-emerald-600 dark:text-emerald-400")}
             >
                 <Bold size={18} />
             </button>
             <button
                 onClick={() => editor.chain().focus().toggleItalic().run()}
-                className={cn("p-2 rounded-md hover:bg-white/5 border border-white/5", editor.isActive('italic') && "bg-white/10 text-emerald-400")}
+                className={cn("p-2 rounded-md hover:bg-foreground/5 border border-border/50", editor.isActive('italic') && "bg-foreground/10 text-emerald-600 dark:text-emerald-400")}
             >
                 <Italic size={18} />
             </button>
             <button
                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                className={cn("p-2 rounded-md hover:bg-white/5 border border-white/5", editor.isActive('heading', { level: 1 }) && "bg-white/10 text-emerald-400")}
+                className={cn("p-2 rounded-md hover:bg-foreground/5 border border-border/50", editor.isActive('heading', { level: 1 }) && "bg-foreground/10 text-emerald-600 dark:text-emerald-400")}
             >
                 <Heading1 size={18} />
             </button>
             <button
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
-                className={cn("p-2 rounded-md hover:bg-white/5 border border-white/5", editor.isActive('bulletList') && "bg-white/10 text-emerald-400")}
+                className={cn("p-2 rounded-md hover:bg-foreground/5 border border-border/50", editor.isActive('bulletList') && "bg-foreground/10 text-emerald-600 dark:text-emerald-400")}
             >
                 <List size={18} />
             </button>
             <button
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                className={cn("p-2 rounded-md hover:bg-white/5 border border-white/5", editor.isActive('orderedList') && "bg-white/10 text-emerald-400")}
+                className={cn("p-2 rounded-md hover:bg-foreground/5 border border-border/50", editor.isActive('orderedList') && "bg-foreground/10 text-emerald-600 dark:text-emerald-400")}
             >
                 <ListOrdered size={18} />
             </button>
             <button
                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                className={cn("p-2 rounded-md hover:bg-white/5 border border-white/5", editor.isActive('blockquote') && "bg-white/10 text-emerald-400")}
+                className={cn("p-2 rounded-md hover:bg-foreground/5 border border-border/50", editor.isActive('blockquote') && "bg-foreground/10 text-emerald-600 dark:text-emerald-400")}
             >
                 <Quote size={18} />
             </button>
         </div>
         
         {isSaving && (
-            <span className="text-[10px] uppercase tracking-widest text-white/30 animate-pulse">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground/50 animate-pulse">
                 Saving changes...
             </span>
         )}
@@ -202,10 +208,10 @@ export default function TiptapEditor({
       <EditorContent editor={editor} />
 
       <style jsx global>{`
-        .prose h1 { @apply text-3xl font-bold mb-4 mt-8 text-white/95; }
-        .prose h2 { @apply text-2xl font-semibold mb-3 mt-6 text-white/90; }
+        .prose h1 { @apply text-3xl font-bold mb-4 mt-8 text-foreground; }
+        .prose h2 { @apply text-2xl font-semibold mb-3 mt-6 text-foreground/90; }
         .prose p { @apply mb-4; }
-        .prose blockquote { @apply border-l-2 border-emerald-500/50 pl-4 italic text-white/60 my-6; }
+        .prose blockquote { @apply border-l-2 border-emerald-500/50 pl-4 italic text-muted-foreground my-6; }
         .prose ul { @apply list-disc list-inside mb-4 space-y-2; }
         .prose ol { @apply list-decimal list-inside mb-4 space-y-2; }
       `}</style>

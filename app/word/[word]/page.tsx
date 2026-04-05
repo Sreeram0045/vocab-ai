@@ -43,7 +43,7 @@ export default async function WordPage({ params }: WordPageProps) {
         <div className="animate-in fade-in slide-in-from-left-4 duration-700">
           <Link 
             href="/history" 
-            className="inline-flex items-center text-sm text-zinc-500 hover:text-white transition-colors group"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> 
             Back to Library
