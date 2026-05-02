@@ -133,52 +133,59 @@ export async function POST(req: Request) {
         "Chandler: That is not serendipity, Joe."
       ]
     }
-    OUTPUT RULES:
+    STRICT OUTPUT RULES:
     - Return ONLY valid JSON.
     - Synonyms must be separate strings.
     - Do NOT use "Character A". Use Real Names (e.g., Sheldon).
+    - NO markdown formatting. No \`\`\`json tags.
+    - NO introductory text, NO explanatory notes, and NO "Raw Text" labels.
+    - Output MUST start with { and end with }.
+    - Use double quotes for all keys and string values.
     `;
 
     try {
-        console.log("Attempting Primary API: OpenRouter...");
+        console.log("Attempting Primary API: Gemini...");
 
-        // Ensure API Key exists before calling
-        if (!process.env.OPEN_ROUTER_TOKEN) {
-            throw new Error("OpenRouter API Key is missing. Skipping to fallback.");
+        if (!process.env.GEMINI_API_KEY) {
+            throw new Error("Gemini API Key is missing. Cannot use fallback.");
         }
-        // openRouter("arcee-ai/trinity-large-preview:free")
-        const { text } = await generateText({
-            // SUGGESTION: This model is often available for free and is very smart (Flash 2.0)
-            // You can revert to "arcee-ai/trinity-large-preview:free" if you prefer.
-            model: openRouter("stepfun/step-3.5-flash:free"),
-            system: systemPrompt,
-            prompt: `Teach me the word: "${word}"`,
-            temperature: 0.7,
+        // using gemini 3.1 flash lite preview
+        // we could use gemma but it fails in providing json structured output but it has 1.5 request limit while gemini 3.1 flash lite preview has a limit of 500 request per day which is also fine
+        // To Do :- Create a curated prompt so that it provides a better output from gemma
+        const model = genAI.getGenerativeModel({
+            model: "gemini-3.1-flash-lite-preview",
+            generationConfig: { responseMimeType: "application/json" }
         });
 
-        return processResponse(text, "OpenRouter");
+        const result = await model.generateContent(
+            systemPrompt + `\n\nUSER REQUEST: Generate JSON for word: "${word}"`
+        );
+        const text = result.response.text();
+
+        return processResponse(text, "Gemini Primary");
 
     } catch (primaryError: any) {
-        console.warn("⚠️ OpenRouter Failed. Switching to Gemini Fallback.", primaryError.message);
+        console.warn("⚠️ Gemini Failed, Switching to OpenRouter fallback", primaryError.message);
 
         try {
+            console.log("Attempting Secondary API: OpenRouter...");
             // Ensure Fallback Key exists
-            if (!process.env.GEMINI_API_KEY) {
-                throw new Error("Gemini API Key is missing. Cannot use fallback.");
+            if (!process.env.OPEN_ROUTER_TOKEN) {
+                throw new Error("OpenRouter API Key is missing.");
             }
-
-            // ATTEMPT 2: Gemini (Fallback)
-            const model = genAI.getGenerativeModel({
-                model: "gemini-3.1-flash-lite-preview",
-                generationConfig: { responseMimeType: "application/json" }
+            // using gpt-oss free for now as it is one of the best models available for free in openrouter
+            const { text } = await generateText({
+                model: openRouter("openai/gpt-oss-120b:free"),
+                system: systemPrompt,
+                prompt: `Teach me the word: "${word}"`,
+                temperature: 0.7,
             });
 
-            const result = await model.generateContent(
-                systemPrompt + `\n\nUSER REQUEST: Generate JSON for word: "${word}"`
-            );
-            const text = result.response.text();
+            return processResponse(text, "OpenRouter");
 
-            return processResponse(text, "Gemini Fallback");
+            // ATTEMPT 2: Gemini (Fallback)
+            // gemini-3.1-flash-lite-preview
+            // gemini-2.5-flash-lite
 
         } catch (secondaryError: any) {
             console.error("❌ CRITICAL: Both models failed.", secondaryError);
